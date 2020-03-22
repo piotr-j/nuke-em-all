@@ -12,8 +12,8 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:3.5.2'
         classpath 'com.mobidevelop.robovm:robovm-gradle-plugin:2.3.8'
-        
 
+        classpath 'com.google.gms:google-services:4.3.3'
     }
 }
 
@@ -55,7 +55,9 @@ project(":desktop") {
 }
 
 project(":android") {
-    apply plugin: "android"
+    apply plugin: 'com.android.application'
+    apply plugin: 'com.google.gms.google-services'
+
 
     configurations { natives }
 
@@ -81,7 +83,11 @@ project(":android") {
         natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-arm64-v8a"
         natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86"
         natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86_64"
-        
+
+        implementation 'com.google.firebase:firebase-analytics:17.2.3'
+        implementation 'com.google.firebase:firebase-auth:19.3.0'
+        implementation 'com.google.firebase:firebase-functions:19.0.2'
+
     }
 }
 
