@@ -1,0 +1,73 @@
+package io.piotrjastrzebski.gdxjam.nta.game;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+
+/**
+ * Base class for game stuff on the map
+ */
+public abstract class Entity implements Comparable<Entity> {
+    public final int id;
+    protected final int sort;
+
+    // null for neutral?
+    protected Player owner;
+
+    public Entity (int id, int sort) {
+        this.id = id;
+        this.sort = sort;
+    }
+
+    public void update (float delta) {
+
+    }
+
+    public void draw (SpriteBatch batch) {
+
+    }
+
+    public void drawDebug (ShapeRenderer shapes) {
+
+    }
+
+    public void owner (Player player) {
+        this.owner = player;
+        // event of some sort?
+    }
+
+    public Player owner () {
+        return owner;
+    }
+
+    public boolean click (float x, float y) {
+
+        return false;
+    }
+
+    @Override
+    public int compareTo (Entity o) {
+        // lets see if this works
+        return Integer.compare(sort * 100000 + id, o.sort * 100000 + id);
+    }
+
+    @Override
+    public boolean equals (Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Entity entity = (Entity)o;
+
+        return id == entity.id;
+    }
+
+    @Override
+    public int hashCode () {
+        // bad hc but whatever
+        return id;
+    }
+
+    public boolean contains (float x, float y) {
+        return false;
+    }
+}

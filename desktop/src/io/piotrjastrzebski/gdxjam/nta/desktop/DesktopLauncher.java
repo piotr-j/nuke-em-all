@@ -8,7 +8,7 @@ import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 public class DesktopLauncher {
 	public static void main (String[] arg) {
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-		config.setWindowedMode(720, 1280);
+		config.setWindowedMode(1280, 720);
 		config.setPreferencesConfig(".nukethemall", Files.FileType.External);
 		new Lwjgl3Application(new NukeGame(), config);
 	}
