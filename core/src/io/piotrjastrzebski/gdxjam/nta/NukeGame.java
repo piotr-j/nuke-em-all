@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Main goal is to make this multi-player via firebase database of sorts
@@ -24,6 +25,7 @@ import com.kotcrab.vis.ui.VisUI;
  * Web version would be great...
  *
  */
+@Slf4j
 public class NukeGame extends Game {
 	public static final float SCALE = 32;
 	public static final float INV_SCALE = 1/SCALE;
@@ -39,6 +41,7 @@ public class NukeGame extends Game {
 
 	@Override
 	public void create () {
+		log.info("Created");
 		batch = new SpriteBatch();
 		shapes = new ShapeRenderer();
 
@@ -53,6 +56,7 @@ public class NukeGame extends Game {
 
 	@Override
 	public void resize (int width, int height) {
+		log.info("resize {}, {}", width, height);
 		gameViewport.update(width, height, true);
 		uiViewport.update(width, height, true);
 		super.resize(width, height);

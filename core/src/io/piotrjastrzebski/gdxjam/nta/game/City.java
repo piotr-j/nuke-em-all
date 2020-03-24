@@ -5,18 +5,18 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * City owned by a Player, generates resources
  */
+@Slf4j
 public class City extends Entity {
-    protected static final String TAG = City.class.getSimpleName();
     String tag;
     Continent.Spot spot;
 
     public City (int id) {
         super(id, 11);
-        tag = TAG + "#" +id;
     }
 
     public void init (Continent.Spot spot) {
@@ -27,7 +27,8 @@ public class City extends Entity {
         addListener(new ClickListener() {
             @Override
             public void clicked (InputEvent event, float x, float y) {
-                Gdx.app.log(tag, "Hi!");
+
+//                Gdx.app.log(tag, "Hi!");
             }
         });
     }
