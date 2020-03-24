@@ -3,8 +3,8 @@ package io.piotrjastrzebski.gdxjam.nta.game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Circle;
-import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 /**
  * City owned by a Player, generates resources
@@ -12,36 +12,36 @@ import com.badlogic.gdx.math.Rectangle;
 public class City extends Entity {
     protected static final String TAG = City.class.getSimpleName();
     String tag;
-    Rectangle bounds;
     Continent.Spot spot;
 
     public City (int id) {
         super(id, 11);
         tag = TAG + "#" +id;
-        bounds = new Rectangle(-.5f, -.5f, 1, 1);
     }
 
     public void init (Continent.Spot spot) {
         this.spot = spot;
         spot.entity = this;
+        spot.addActor(this);
+        setBounds(spot.getWidth()/2 - .5f, spot.getHeight()/2 - .5f, 1, 1);
+        addListener(new ClickListener() {
+            @Override
+            public void clicked (InputEvent event, float x, float y) {
+                Gdx.app.log(tag, "Hi!");
+            }
+        });
     }
 
     @Override
     public void drawDebug (ShapeRenderer shapes) {
+        super.drawDebug(shapes);
+        shapes.end();
+
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(Color.GRAY);
-        float x = spot.x() + bounds.x;
-        float y = spot.y() + bounds.y;
-        shapes.rect(x, y, bounds.width, bounds.height);
-    }
+        shapes.rect(getX(), getY(), getWidth(), getHeight());
 
-    @Override
-    public boolean contains (float x, float y) {
-        return bounds.contains(x - spot.x(), y - spot.y());
-    }
-
-    @Override
-    public boolean click (float x, float y) {
-        Gdx.app.log(tag, "clicked!");
-        return true;
+        shapes.end();
+        shapes.begin(ShapeRenderer.ShapeType.Line);
     }
 }

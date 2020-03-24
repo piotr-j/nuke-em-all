@@ -2,20 +2,18 @@ package io.piotrjastrzebski.gdxjam.nta;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Array;
 import io.piotrjastrzebski.gdxjam.nta.game.*;
-
-import java.util.Iterator;
 
 public class GameScreen extends BaseScreen {
     protected static final String TAG = GameScreen.class.getSimpleName();
 
-    int entityIds = 0;
+    public static int IDS = 0;
 
+    Stage gs;
     Array<Entity> entities = new Array<>();
     // immobile stuff
     Array<Continent> continents = new Array<>();
@@ -31,6 +29,7 @@ public class GameScreen extends BaseScreen {
 
     public GameScreen (NukeGame game) {
         super(game);
+        gs = new Stage(game.gameViewport, game.batch);
 
         neutral = new Player(0, "neutral");
         player = new Player(1, "player");
@@ -38,6 +37,12 @@ public class GameScreen extends BaseScreen {
 
         // TODO load map from somewhere?
         createContinents();
+    }
+
+    @Override
+    public void show () {
+        super.show();
+        Gdx.input.setInputProcessor(new InputMultiplexer(stage, gs, this));
     }
 
     private void createContinents () {
@@ -63,16 +68,17 @@ public class GameScreen extends BaseScreen {
     }
 
     private void continent (float cx, float cy, float radius) {
-        Continent continent = new Continent(++entityIds);
+        Continent continent = new Continent(++IDS);
         continent.init(cx, cy, radius);
         continent.owner(neutral);
+        gs.addActor(continent);
         entities.add(continent);
         continents.add(continent);
 
         // more cities for bigger continents?
         Array<City> cc = new Array<>();
         for (int i = 0; i < 3; i++) {
-            City city = new City(++entityIds);
+            City city = new City(++IDS);
             cc.add(city);
             entities.add(city);
             cities.add(city);
@@ -87,64 +93,27 @@ public class GameScreen extends BaseScreen {
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             Gdx.app.log(TAG, "rebuild continents");
             entities.removeAll(continents, true);
+            for (Continent continent : continents) {
+                continent.remove();
+            }
             continents.clear();
             createContinents();
         }
 
         entities.sort();
 
-        // need to fix the time step i guess
-        for (Entity entity : entities) {
-            entity.update(delta);
-        }
-
-        batch.setProjectionMatrix(gameCamera.combined);
-        batch.enableBlending();
-        batch.begin();
-        for (Entity entity : entities) {
-            entity.draw(batch);
-        }
-        batch.end();
-
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        shapes.setProjectionMatrix(gameCamera.combined);
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for (Entity entity : entities) {
-            entity.drawDebug(shapes);
-        }
-        shapes.end();
-
+        gs.act(delta);
+        gs.draw();
         stage.act(delta);
         stage.draw();
     }
 
-    Vector2 tp = new Vector2();
-    Entity over = null;
     @Override
-    public boolean touchDown (int screenX, int screenY, int pointer, int button) {
-        game.gameViewport.unproject(tp.set(screenX, screenY));
-        over = entityAt(tp.x, tp.y);
-        return super.touchDown(screenX, screenY, pointer, button);
-    }
-
-    @Override
-    public boolean touchUp (int screenX, int screenY, int pointer, int button) {
-        game.gameViewport.unproject(tp.set(screenX, screenY));
-        Entity over = entityAt(tp.x, tp.y);
-        if (this.over == over && over != null) {
-            over.click(tp.x, tp.y);
-        }
-        return super.touchUp(screenX, screenY, pointer, button);
-    }
-
-    private Entity entityAt (float x, float y) {
-        for (Entity entity : entities) {
-            if (entity.contains(x, y)) {
-                return entity;
-            }
-        }
-        return null;
+    public void dispose () {
+        super.dispose();
+        gs.dispose();
     }
 }

@@ -3,33 +3,24 @@ package io.piotrjastrzebski.gdxjam.nta.game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Group;
 
 /**
  * Base class for game stuff on the map
  */
-public abstract class Entity implements Comparable<Entity> {
+public abstract class Entity extends Group implements Comparable<Entity> {
     public final int id;
     protected final int sort;
 
-    // null for neutral?
     protected Player owner;
 
     public Entity (int id, int sort) {
+        super();
         this.id = id;
         this.sort = sort;
     }
 
-    public void update (float delta) {
-
-    }
-
-    public void draw (SpriteBatch batch) {
-
-    }
-
-    public void drawDebug (ShapeRenderer shapes) {
-
-    }
 
     public void owner (Player player) {
         this.owner = player;
@@ -38,11 +29,6 @@ public abstract class Entity implements Comparable<Entity> {
 
     public Player owner () {
         return owner;
-    }
-
-    public boolean click (float x, float y) {
-
-        return false;
     }
 
     @Override
@@ -65,9 +51,5 @@ public abstract class Entity implements Comparable<Entity> {
     public int hashCode () {
         // bad hc but whatever
         return id;
-    }
-
-    public boolean contains (float x, float y) {
-        return false;
     }
 }
