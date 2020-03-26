@@ -31,6 +31,9 @@ allprojects {
         slf4j = '1.7.26'
         logback = '1.2.3'
         lombok = '1.18.12'
+
+        shapedrawer = '2.2.0'
+
     }
 
     repositories {
@@ -40,6 +43,8 @@ allprojects {
         google()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+        maven { url 'https://jitpack.io' }
+
     }
 }
 
@@ -145,5 +150,7 @@ project(":core") {
 
         compileOnly "org.projectlombok:lombok:$lombok"
         annotationProcessor "org.projectlombok:lombok:$lombok"
+
+        implementation "space.earlygrey:shapedrawer:$shapedrawer"
     }
 }
