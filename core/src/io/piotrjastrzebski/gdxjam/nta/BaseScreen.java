@@ -5,16 +5,18 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import space.earlygrey.shapedrawer.ShapeDrawer;
 
 public class BaseScreen implements Screen, InputProcessor {
     final NukeGame game;
     final OrthographicCamera gameCamera;
     final OrthographicCamera uiCamera;
-    final SpriteBatch batch;
-    final ShapeRenderer shapes;
+    final PolygonSpriteBatch batch;
+    final ShapeDrawer shapes;
 
     final Stage stage;
 

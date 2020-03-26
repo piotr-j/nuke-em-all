@@ -1,5 +1,7 @@
 package io.piotrjastrzebski.gdxjam.nta.game;
 
+import io.piotrjastrzebski.gdxjam.nta.NukeGame;
+
 /**
  * Nuke launched by a Player
  *
@@ -10,7 +12,7 @@ package io.piotrjastrzebski.gdxjam.nta.game;
  */
 public class Nuke extends Entity {
 
-    public Nuke (int id) {
-        super(id, 100);
+    public Nuke (NukeGame game, int id) {
+        super(game, id, 100);
     }
 }

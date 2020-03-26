@@ -1,22 +1,21 @@
 package io.piotrjastrzebski.gdxjam.nta.game;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 
 /**
  * Base class for game stuff on the map
  */
 public abstract class Entity extends Group implements Comparable<Entity> {
+    protected final NukeGame game;
     public final int id;
     protected final int sort;
 
     protected Player owner;
 
-    public Entity (int id, int sort) {
+    public Entity (NukeGame game, int id, int sort) {
         super();
+        this.game = game;
         this.id = id;
         this.sort = sort;
     }

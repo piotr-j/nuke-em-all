@@ -4,9 +4,13 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Scaling;
 import io.piotrjastrzebski.gdxjam.nta.game.*;
+import io.piotrjastrzebski.gdxjam.nta.game.Continents.ContinentData;
 
 public class GameScreen extends BaseScreen {
     protected static final String TAG = GameScreen.class.getSimpleName();
@@ -27,6 +31,9 @@ public class GameScreen extends BaseScreen {
     final Player player;
     final Player enemy;
 
+    // raw map from wiki https://en.wikipedia.org/wiki/World_map#/media/File:Winkel_triple_projection_SW.jpg
+    Texture worldMap;
+
     public GameScreen (NukeGame game) {
         super(game);
         gs = new Stage(game.gameViewport, game.batch);
@@ -35,72 +42,57 @@ public class GameScreen extends BaseScreen {
         player = new Player(1, "player");
         enemy = new Player(2, "enemy");
 
-        // TODO load map from somewhere?
+        if (false) {
+            worldMap = new Texture("world_map.jpg");
+            Image image = new Image(worldMap);
+            image.setFillParent(true);
+            image.setScaling(Scaling.fit);
+            gs.addActor(image);
+        }
+
         createContinents();
     }
 
     @Override
     public void show () {
         super.show();
+
         Gdx.input.setInputProcessor(new InputMultiplexer(stage, gs, this));
     }
 
     private void createContinents () {
         // eventually we want something more sensible, rng maybe?
         // via seed?
-        // TODO rng player location
-        continent(6, 15, 4.5f);
-        continent(8, 5, 3.5f);
-
-
-        continent(21, 14, 3.0f);
-        continent(22, 6, 4.5f);
-
-        continent(30, 15, 5.5f);
-
-        continent(34, 4, 3f);
+        for (ContinentData continent : Continents.continents()) {
+            continent(continent);
+        }
 
         // random initial positions
+        // more continents per player?
         Array<Continent> copy = new Array<>(continents);
         copy.shuffle();
-        copy.pop().owner(player);
-        copy.pop().owner(enemy);
+        if (copy.size == 0) return;
+        overtakeContinent(copy.pop(), player);
+        overtakeContinent(copy.pop(), enemy);
     }
 
-    private void continent (float cx, float cy, float radius) {
-        Continent continent = new Continent(++IDS);
-        continent.init(cx, cy, radius);
+    private void overtakeContinent (Continent continent, Player player) {
+        continent.owner(player);
+        // TODO spawn stuff?
+    }
+
+    private void continent (ContinentData cd) {
+        Continent continent = new Continent(game, ++IDS);
+        continent.init(cd);
         continent.owner(neutral);
         gs.addActor(continent);
         entities.add(continent);
         continents.add(continent);
-
-        // more cities for bigger continents?
-        Array<City> cc = new Array<>();
-        for (int i = 0; i < 3; i++) {
-            City city = new City(++IDS);
-            cc.add(city);
-            entities.add(city);
-            cities.add(city);
-        }
-        continent.city(cc);
     }
 
     @Override
     public void render (float delta) {
         super.render(delta);
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            Gdx.app.log(TAG, "rebuild continents");
-            entities.removeAll(continents, true);
-            for (Continent continent : continents) {
-                continent.remove();
-            }
-            continents.clear();
-            createContinents();
-        }
-
-        entities.sort();
 
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
@@ -115,5 +107,6 @@ public class GameScreen extends BaseScreen {
     public void dispose () {
         super.dispose();
         gs.dispose();
+        if (worldMap != null) worldMap.dispose();
     }
 }

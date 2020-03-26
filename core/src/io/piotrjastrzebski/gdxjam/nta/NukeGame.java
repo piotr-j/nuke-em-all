@@ -3,13 +3,19 @@ package io.piotrjastrzebski.gdxjam.nta;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
 import lombok.extern.slf4j.Slf4j;
+import space.earlygrey.shapedrawer.ShapeDrawer;
 
 /**
  * Main goal is to make this multi-player via firebase database of sorts
@@ -24,6 +30,12 @@ import lombok.extern.slf4j.Slf4j;
  *
  * Web version would be great...
  *
+ *
+ * Few seconds delay on launch
+ * longish flight time, 30s end to end?
+ * overlap nukes to destroy
+ * choose between nuking places and defending
+ *
  */
 @Slf4j
 public class NukeGame extends Game {
@@ -32,18 +44,25 @@ public class NukeGame extends Game {
 	public static final float WIDTH = 1280 * INV_SCALE;
 	public static final float HEIGHT = 720 * INV_SCALE;
 
-	ExtendViewport gameViewport;
-	ScreenViewport uiViewport;
+	public ExtendViewport gameViewport;
+	public ScreenViewport uiViewport;
 
-	SpriteBatch batch;
-	ShapeRenderer shapes;
-	Preferences prefs;
+	public PolygonSpriteBatch batch;
+	public TextureRegion white;
+	public ShapeDrawer shapes;
+	public Preferences prefs;
 
 	@Override
 	public void create () {
 		log.info("Created");
-		batch = new SpriteBatch();
-		shapes = new ShapeRenderer();
+		batch = new PolygonSpriteBatch();
+		{
+			Pixmap pixmap = new Pixmap(3, 3, Pixmap.Format.RGBA8888);
+			pixmap.setColor(Color.WHITE);
+			pixmap.drawPixel(1, 1);
+			white = new TextureRegion(new Texture(pixmap), 1, 1, 1, 1);
+		}
+		shapes = new ShapeDrawer(batch, white);
 
 		gameViewport = new ExtendViewport(WIDTH, HEIGHT);
 		uiViewport = new ScreenViewport();
@@ -56,7 +75,7 @@ public class NukeGame extends Game {
 
 	@Override
 	public void resize (int width, int height) {
-		log.info("resize {}, {}", width, height);
+		log.debug("resize {}, {}", width, height);
 		gameViewport.update(width, height, true);
 		uiViewport.update(width, height, true);
 		super.resize(width, height);
@@ -72,7 +91,7 @@ public class NukeGame extends Game {
 	@Override
 	public void dispose () {
 		batch.dispose();
-		shapes.dispose();
+		white.getTexture().dispose();
 		VisUI.dispose();
 	}
 }
