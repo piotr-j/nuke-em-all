@@ -97,7 +97,45 @@ public class GameScreen extends BaseScreen {
 
     private void overtakeContinent (Continent continent, Player player) {
         continent.owner(player);
-        // TODO spawn stuff?
+
+        Rectangle bounds = continent.bounds();
+        // city count roughly based on area
+        int siloCount = Math.min(2 + Math.round(bounds.area()/20), 4);
+        Array<Silo> silos = new Array<>();
+        Array<City> cities = continent.cities();
+        for (int i = 0; i < siloCount; i++) {
+            Silo silo = new Silo(game, ++IDS);
+            silo.owner(player);
+            continent.addActor(silo);
+
+            outer:
+            for (int j = 0; j < 2000; j++) {
+                silo.setPosition(
+                    MathUtils.random(0, bounds.width - silo.getWidth()),
+                    MathUtils.random(0, bounds.height - silo.getHeight())
+                );
+                float cx = silo.getX(center);
+                float cy = silo.getY(center);
+                // can be closer to cities
+                for (City other : cities) {
+                    float dst = Vector2.dst(other.getX(center), other.getY(center), cx, cy);
+                    if (dst < silo.getWidth() * 2f) {
+                        continue outer;
+                    }
+                }
+                for (Silo other : silos) {
+                    float dst = Vector2.dst(other.getX(center), other.getY(center), cx, cy);
+                    if (dst < silo.getWidth() * 2.5f) {
+                        continue outer;
+                    }
+                }
+
+                if (continent.contains(cx, silo.getY())) {
+                    break;
+                }
+            }
+            silos.add(silo);
+        }
     }
 
     private void continent (ContinentData cd) {
