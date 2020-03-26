@@ -5,16 +5,22 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import io.piotrjastrzebski.gdxjam.nta.game.*;
 import io.piotrjastrzebski.gdxjam.nta.game.Continents.ContinentData;
+import lombok.extern.slf4j.Slf4j;
 
+import static com.badlogic.gdx.utils.Align.center;
+
+@Slf4j
 public class GameScreen extends BaseScreen {
-    protected static final String TAG = GameScreen.class.getSimpleName();
-
     public static int IDS = 0;
 
     Stage gs;
@@ -72,8 +78,21 @@ public class GameScreen extends BaseScreen {
         Array<Continent> copy = new Array<>(continents);
         copy.shuffle();
         if (copy.size == 0) return;
-        overtakeContinent(copy.pop(), player);
-        overtakeContinent(copy.pop(), enemy);
+        // there should be a few matching continents
+        while (true) {
+            Continent continent = copy.pop();
+            if (continent.cities().size == 4) {
+                overtakeContinent(continent, player);
+                break;
+            }
+        }
+        while (true) {
+            Continent continent = copy.pop();
+            if (continent.cities().size == 4) {
+                overtakeContinent(continent, enemy);
+                break;
+            }
+        }
     }
 
     private void overtakeContinent (Continent continent, Player player) {
@@ -88,6 +107,35 @@ public class GameScreen extends BaseScreen {
         gs.addActor(continent);
         entities.add(continent);
         continents.add(continent);
+
+        Rectangle bounds = continent.bounds();
+        // city count roughly based on area
+        int cityCount = Math.min(2 + Math.round(bounds.area()/20), 4);
+        Array<City> cities = new Array<>();
+        for (int i = 0; i < cityCount; i++) {
+            City city = new City(game, ++IDS);
+            continent.addActor(city);
+
+            for (int j = 0; j < 1000; j++) {
+                city.setPosition(
+                    MathUtils.random(0, bounds.width - city.getWidth()),
+                    MathUtils.random(0, bounds.height - city.getHeight())
+                );
+                boolean tooClose = false;
+                for (City other : cities) {
+                    float dst = Vector2.dst(other.getX(center), other.getY(center), city.getX(center), city.getY(center));
+                    if (dst < other.getWidth() * 2) {
+                        tooClose = true;
+                    }
+                }
+
+                if (!tooClose && continent.contains(city.getX(center), city.getY())) {
+                    break;
+                }
+            }
+            cities.add(city);
+        }
+
     }
 
     @Override

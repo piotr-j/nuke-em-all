@@ -1,9 +1,10 @@
 package io.piotrjastrzebski.gdxjam.nta.game;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 import lombok.extern.slf4j.Slf4j;
+import space.earlygrey.shapedrawer.ShapeDrawer;
 
 /**
  * City owned by a Player, generates resources
@@ -14,19 +15,28 @@ public class City extends Entity {
 
     public City (NukeGame game, int id) {
         super(game, id, 11);
+        setBounds(0, 0, .76f, .76f);
     }
 
-
     @Override
-    public void drawDebug (ShapeRenderer shapes) {
-        super.drawDebug(shapes);
-        shapes.end();
+    public void draw (Batch batch, float parentAlpha) {
+        super.draw(batch, parentAlpha);
+        ShapeDrawer shapes = game.shapes;
 
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        float x = getX();
+        float y = getY();
+        float width = getWidth();
+        float height = getHeight();
+//        shapes.setColor(Color.GRAY);
+//        shapes.filledRectangle(x, y, width, height);
+        shapes.setColor(Color.DARK_GRAY);
         shapes.setColor(Color.GRAY);
-        shapes.rect(getX(), getY(), getWidth(), getHeight());
+        shapes.filledRectangle(x + width * .1f, y, width * .2f, height * .75f);
+        shapes.filledRectangle(x + width * .7f, y, width * .2f, height * .6f);
 
-        shapes.end();
-        shapes.begin(ShapeRenderer.ShapeType.Line);
+        shapes.filledRectangle(x + width * .4f, y, width * .2f, height);
+
+        shapes.setColor(Color.DARK_GRAY);
+        shapes.filledRectangle(x, y, width, height * .25f);
     }
 }

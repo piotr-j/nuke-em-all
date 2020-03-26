@@ -4,7 +4,9 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.utils.Array;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 import space.earlygrey.shapedrawer.JoinType;
 import space.earlygrey.shapedrawer.ShapeDrawer;
@@ -19,7 +21,6 @@ public class Continent extends Entity {
 
     public Continent (NukeGame game, int id) {
         super(game, id, 0);
-        setDebug(true);
         setTouchable(Touchable.childrenOnly);
     }
 
@@ -31,7 +32,6 @@ public class Continent extends Entity {
 
     @Override
     public void draw (Batch batch, float parentAlpha) {
-        super.draw(batch, parentAlpha);
 
         ShapeDrawer shapes = game.shapes;
         Color t = owner.tint;
@@ -43,6 +43,7 @@ public class Continent extends Entity {
         for (Polygon polygon : data.polygons) {
             shapes.polygon(polygon.getTransformedVertices(), .15f,  JoinType.SMOOTH);
         }
+        super.draw(batch, parentAlpha);
     }
 
     private void polygon (ShapeDrawer shapes, Polygon polygon) {
@@ -70,5 +71,32 @@ public class Continent extends Entity {
         if (this.owner != null) {
             this.owner.continents.add(this);
         }
+    }
+
+    public Rectangle bounds () {
+        return data.getBoundingRectangle();
+    }
+
+    public boolean contains (float x, float y) {
+        float bx = getX();
+        float by = getY();
+        for (Polygon polygon : data.polygons) {
+            if (polygon.contains(bx + x, by + y)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public Array<City> cities () {
+        // not great making them arrays
+        Array<City> cities = new Array<>();
+        for (Actor child : getChildren()) {
+            if (child instanceof City) {
+                cities.add((City)child);
+            }
+        }
+        return cities;
     }
 }
