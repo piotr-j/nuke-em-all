@@ -1,6 +1,8 @@
 package io.piotrjastrzebski.gdxjam.nta.game;
 
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 
 /**
@@ -10,6 +12,7 @@ public abstract class Entity extends Group implements Comparable<Entity> {
     protected final NukeGame game;
     public final int id;
     protected final int sort;
+    protected static Vector2 v2 = new Vector2();
 
     protected Player owner;
 
@@ -28,6 +31,14 @@ public abstract class Entity extends Group implements Comparable<Entity> {
 
     public Player owner () {
         return owner;
+    }
+
+    public float cx () {
+        return getX(Align.center);
+    }
+
+    public float cy () {
+        return getY(Align.center);
     }
 
     @Override

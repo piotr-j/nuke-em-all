@@ -1,7 +1,6 @@
 package io.piotrjastrzebski.gdxjam.nta;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -10,7 +9,6 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import io.piotrjastrzebski.gdxjam.nta.game.*;
@@ -23,7 +21,7 @@ import static com.badlogic.gdx.utils.Align.center;
 public class GameScreen extends BaseScreen {
     public static int IDS = 0;
 
-    Stage gs;
+    Stage gameStage;
     Array<Entity> entities = new Array<>();
     // immobile stuff
     Array<Continent> continents = new Array<>();
@@ -42,7 +40,7 @@ public class GameScreen extends BaseScreen {
 
     public GameScreen (NukeGame game) {
         super(game);
-        gs = new Stage(game.gameViewport, game.batch);
+        gameStage = new Stage(game.gameViewport, game.batch);
 
         neutral = new Player(0, "neutral");
         player = new Player(1, "player");
@@ -53,7 +51,7 @@ public class GameScreen extends BaseScreen {
             Image image = new Image(worldMap);
             image.setFillParent(true);
             image.setScaling(Scaling.fit);
-            gs.addActor(image);
+            gameStage.addActor(image);
         }
 
         createContinents();
@@ -63,7 +61,7 @@ public class GameScreen extends BaseScreen {
     public void show () {
         super.show();
 
-        Gdx.input.setInputProcessor(new InputMultiplexer(stage, gs, this));
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gameStage, this));
     }
 
     private void createContinents () {
@@ -104,7 +102,7 @@ public class GameScreen extends BaseScreen {
         Array<Silo> silos = new Array<>();
         Array<City> cities = continent.cities();
         for (int i = 0; i < siloCount; i++) {
-            Silo silo = new Silo(game, ++IDS);
+            Silo silo = new Silo(this, ++IDS);
             silo.owner(player);
             continent.addActor(silo);
 
@@ -142,7 +140,7 @@ public class GameScreen extends BaseScreen {
         Continent continent = new Continent(game, ++IDS);
         continent.init(cd);
         continent.owner(neutral);
-        gs.addActor(continent);
+        gameStage.addActor(continent);
         entities.add(continent);
         continents.add(continent);
 
@@ -176,6 +174,18 @@ public class GameScreen extends BaseScreen {
 
     }
 
+    Vector2 v2 = new Vector2();
+    public void launchNuke (Silo from, float tx, float ty) {
+        from.localToStageCoordinates(v2.set(from.getWidth()/2, from.getHeight()/2));
+
+        Nuke nuke = new Nuke(game, ++IDS);
+        nuke.owner(from.owner());
+        nuke.setPosition(v2.x, v2.y, center);
+        nuke.target(tx, ty);
+
+        gameStage.addActor(nuke);
+    }
+
     @Override
     public void render (float delta) {
         super.render(delta);
@@ -183,16 +193,24 @@ public class GameScreen extends BaseScreen {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        gs.act(delta);
-        gs.draw();
-        stage.act(delta);
-        stage.draw();
+        gameStage.act(delta);
+        gameStage.draw();
+        uiStage.act(delta);
+        uiStage.draw();
     }
 
     @Override
     public void dispose () {
         super.dispose();
-        gs.dispose();
+        gameStage.dispose();
         if (worldMap != null) worldMap.dispose();
+    }
+
+    public Player player () {
+        return player;
+    }
+
+    public Player enemy () {
+        return enemy;
     }
 }

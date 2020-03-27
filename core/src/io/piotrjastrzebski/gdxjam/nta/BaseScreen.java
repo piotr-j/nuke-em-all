@@ -6,8 +6,6 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
@@ -18,7 +16,7 @@ public class BaseScreen implements Screen, InputProcessor {
     final PolygonSpriteBatch batch;
     final ShapeDrawer shapes;
 
-    final Stage stage;
+    final Stage uiStage;
 
     public BaseScreen (NukeGame game) {
         this.game = game;
@@ -27,13 +25,13 @@ public class BaseScreen implements Screen, InputProcessor {
         gameCamera = (OrthographicCamera)game.gameViewport.getCamera();
         uiCamera = (OrthographicCamera)game.uiViewport.getCamera();
 
-        stage = new Stage(game.uiViewport, batch);
+        uiStage = new Stage(game.uiViewport, batch);
     }
 
     @Override
     public void show () {
         // stage first so it takes priority, i guess?
-        Gdx.input.setInputProcessor(new InputMultiplexer(stage, this));
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, this));
     }
 
     @Override
@@ -104,5 +102,9 @@ public class BaseScreen implements Screen, InputProcessor {
     @Override
     public boolean scrolled (int amount) {
         return false;
+    }
+
+    public NukeGame game () {
+        return game;
     }
 }
