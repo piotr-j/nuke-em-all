@@ -54,6 +54,8 @@ public class NukeGame extends Game {
 	// https://github.com/czyzby/gdx-skins/tree/master/biological-attack
 	public Skin skin;
 
+	public Sounds sounds;
+
 	@Override
 	public void create () {
 		log.info("Created");
@@ -76,6 +78,8 @@ public class NukeGame extends Game {
 		skin = new Skin(Gdx.files.internal("skin/biological-attack-ui.json"));
 		skin.getFont("font").getData().markupEnabled = true;
 		skin.getFont("title").getData().markupEnabled = true;
+
+		sounds = new Sounds();
 		setScreen(new GameScreen(this));
 	}
 
@@ -100,5 +104,51 @@ public class NukeGame extends Game {
 		white.getTexture().dispose();
 		VisUI.dispose();
 		skin.dispose();
+	}
+
+	public static class Sounds {
+		public final Sound rocket;
+		public final Sound boom;
+		public final Sound launch;
+		public final Sound begin;
+		public final Sound lost;
+		public final Sound won;
+		public final Sound scream;
+		public final Sound cooldown;
+		public float volume = 1;
+
+		public Sounds () {
+			rocket = newSound("sounds/rocket.wav", 1f);
+			boom = newSound("sounds/boom.wav", 1f);
+			launch = newSound("sounds/launch.wav", 1f);
+			begin = newSound("sounds/begin.wav", 1f);
+			lost = newSound("sounds/you_lost.wav", 1f);
+			won = newSound("sounds/you_won.wav", 1f);
+			scream = newSound("sounds/scream.wav", 1f);
+			cooldown = newSound("sounds/cooldown.wav", 1f);
+		}
+
+		private Sound newSound (String path, float volume) {
+			return new Sound(this, Gdx.audio.newSound(Gdx.files.internal(path)), volume);
+		}
+
+		public static class Sound {
+			private final Sounds sounds;
+			private final com.badlogic.gdx.audio.Sound sound;
+			private float volume;
+
+			public Sound (Sounds sounds, com.badlogic.gdx.audio.Sound sound, float volume) {
+				this.sounds = sounds;
+				this.sound = sound;
+				this.volume = volume;
+			}
+
+			public void play () {
+				float v = sounds.volume * volume;
+				if (v > 0) {
+					sound.play(v);
+				}
+			}
+		}
 	}
 }

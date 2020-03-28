@@ -12,6 +12,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
@@ -159,6 +160,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
     }
 
     private void spawnPlayers () {
+        game.sounds.begin.play();
         // random initial positions
         // more continents per player?
         Array<Continent> copy = new Array<>(continents);
@@ -314,6 +316,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
         explosion.setPosition(cx, cy, Align.center);
         gameStage.addActor(explosion);
 
+        game.sounds.boom.play();
+
         Circle inner = new Circle(cx, cy, radius);
         Circle outer = new Circle(cx, cy, falloffRadius);
 
@@ -366,8 +370,10 @@ public class GameScreen extends BaseScreen implements Telegraph {
         content.add(new Label("Congratulations!", skin)).left().row();
         if (player == remote) {
             content.add(new Label("Everyone lost, but you lost the least i guess?", skin)).left().row();
+            dialog.addAction(Actions.delay(.5f, Actions.run(() -> game.sounds.won.play())));
         } else {
             content.add(new Label("Everyone lost, but you lost extra hard i guess?", skin)).left().row();
+            dialog.addAction(Actions.delay(.5f, Actions.run(() -> game.sounds.lost.play())));
         }
 
         Table buttons = new Table();

@@ -25,6 +25,7 @@ public class Silo extends Entity {
     protected float reloadDuration = 5;
     protected float reloadTimer = 0;
     protected TargetCircle targetCircle;
+    protected Cooldown cooldown;
 
     public Silo (NukeGame game, int id) {
         super(game, id, 20);
@@ -37,10 +38,6 @@ public class Silo extends Entity {
         HealthBar healthBar = new HealthBar(game, () -> health, () -> healthCap);
         healthBar.setPosition(getWidth() * .5f, -.15f, Align.center);
         addActor(healthBar);
-
-        Cooldown cooldown = new Cooldown(game, () -> reloadTimer, () -> reloadDuration);
-        cooldown.setPosition(getWidth() * .5f, getHeight()/2, Align.center);
-        addActor(cooldown);
     }
 
     @Override
@@ -48,7 +45,19 @@ public class Silo extends Entity {
         super.owner(player);
         clearListeners();
 
-        if (!player.isPlayerControlled()) return;
+        if (!player.isPlayerControlled()) {
+            if (cooldown != null) {
+                cooldown.remove();
+                cooldown = null;
+            }
+            return;
+        }
+
+        if (cooldown == null) {
+            cooldown = new Cooldown(game, () -> reloadTimer, () -> reloadDuration);
+            cooldown.setPosition(getWidth() * .5f, getHeight() / 2, Align.center);
+        }
+        addActor(cooldown);
 
         addListener(new ActorGestureListener(.4f, 0.4f, 1.1f, 0.15f) {
             @Override
@@ -83,6 +92,7 @@ public class Silo extends Entity {
             log.warn("Silo#{} cant fire now, reloading {}", id, reloadTimer);
             return;
         }
+        game.sounds.launch.play();
         if (targetCircle != null) targetCircle.remove();
         log.debug("Silo#{} launching at {}, {}", id, x, y);
         localToStageCoordinates(v2.set(getWidth()/2, getHeight()/2));

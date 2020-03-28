@@ -12,12 +12,15 @@ public class Cooldown extends Actor {
     protected final NukeGame game;
     protected final FloatValue value;
     protected final FloatValue cap;
+    protected boolean ready;
 
     public Cooldown (NukeGame game, FloatValue value, FloatValue cap) {
         this.game = game;
         this.value = value;
         this.cap = cap;
         setBounds(0, 0, 1, 1);
+        float a = MathUtils.clamp(value.get() / cap.get(), 0, 1);
+        ready = a <= 0;
     }
 
     @Override
@@ -27,7 +30,17 @@ public class Cooldown extends Actor {
 
         ShapeDrawer shapes = game.shapes;
         float a = MathUtils.clamp(value.get() / cap.get(), 0, 1);
-        if (a >= 1 || a <= 0) return;
+        if (a <= 0) {
+            if (!ready) {
+                ready = true;
+                game.sounds.cooldown.play();
+            }
+            return;
+        }
+        if (a >= 1) {
+            return;
+        }
+        ready = false;
 
         float x = getX();
         float y = getY();
