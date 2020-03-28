@@ -6,8 +6,8 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
-import io.piotrjastrzebski.gdxjam.nta.utils.Events;
-import io.piotrjastrzebski.gdxjam.nta.utils.command.Explode;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.ExplodeEvent;
 
 /**
  * Base class for game stuff on the map
@@ -87,7 +87,7 @@ public abstract class Entity extends Group implements Comparable<Entity> {
             owner.remove(this);
         }
         Vector2 sc = sc();
-        Events.sendDelayed(1/20f, Events.EXPLODE, new Explode(sc.x, sc.y, .5f, 1f, .2f));
+        Events.sendDelayed(1/20f, new ExplodeEvent(sc.x, sc.y, .5f, 1f, .2f));
         addAction(Actions.sequence(
             Actions.delay(1/20f),
             Actions.removeActor()

@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import io.piotrjastrzebski.gdxjam.nta.utils.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.Events;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
 public class BaseScreen implements Screen, InputProcessor {

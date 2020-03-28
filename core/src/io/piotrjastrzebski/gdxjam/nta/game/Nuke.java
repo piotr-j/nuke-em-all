@@ -8,8 +8,8 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
-import io.piotrjastrzebski.gdxjam.nta.utils.Events;
-import io.piotrjastrzebski.gdxjam.nta.utils.command.Explode;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.ExplodeEvent;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
 /**
@@ -70,7 +70,7 @@ public class Nuke extends Entity {
         clearActions();
         targetCircle.remove();
         Vector2 sc = sc();
-        Events.sendDelayed(1/20f, Events.EXPLODE, new Explode(sc.x, sc.y, blastRadiusInner, blastRadiusOuter, blastDamage));
+        Events.sendDelayed(1/20f, new ExplodeEvent(sc.x, sc.y, blastRadiusInner, blastRadiusOuter, blastDamage));
         remove();
     }
 

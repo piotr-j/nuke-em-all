@@ -21,10 +21,10 @@ import com.badlogic.gdx.utils.Scaling;
 import io.piotrjastrzebski.gdxjam.nta.game.*;
 import io.piotrjastrzebski.gdxjam.nta.utils.Continents;
 import io.piotrjastrzebski.gdxjam.nta.utils.Continents.ContinentData;
-import io.piotrjastrzebski.gdxjam.nta.utils.Events;
-import io.piotrjastrzebski.gdxjam.nta.utils.command.Explode;
-import io.piotrjastrzebski.gdxjam.nta.utils.command.LaunchNuke;
-import io.piotrjastrzebski.gdxjam.nta.utils.command.PlayerLost;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.ExplodeEvent;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.LaunchNukeEvent;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.PlayerLostCity;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
@@ -268,9 +268,9 @@ public class GameScreen extends BaseScreen implements Telegraph {
         this.silos.addAll(silos);
     }
 
-    private void launchNuke (Player player, float sx, float sy, float tx, float ty) {
+    private void launchNuke (Silo silo, float sx, float sy, float tx, float ty) {
         Nuke nuke = new Nuke(game, ++IDS);
-        nuke.owner(player);
+        nuke.owner(silo.owner());
         nuke.setPosition(sx, sy, center);
         nuke.target(tx, ty);
         nukes.add(nuke);
@@ -382,7 +382,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
     @Override
     public void show () {
         super.show();
-        Events.register(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST);
+        Events.register(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST_CITy);
         Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gameStage, this));
     }
 
@@ -403,7 +403,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
     @Override
     public void hide () {
-        Events.unregister(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST);
+        Events.unregister(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST_CITy);
         super.hide();
     }
 
@@ -418,16 +418,18 @@ public class GameScreen extends BaseScreen implements Telegraph {
     public boolean handleMessage (Telegram msg) {
         switch (msg.message) {
         case Events.LAUNCH_NUKE: {
-            LaunchNuke ln = (LaunchNuke)msg.extraInfo;
-            launchNuke(ln.player, ln.sx, ln.sy, ln.tx, ln.ty);
+            LaunchNukeEvent ln = (LaunchNukeEvent)msg.extraInfo;
+            launchNuke(ln.silo, ln.sx, ln.sy, ln.tx, ln.ty);
         } break;
         case Events.EXPLODE: {
-            Explode e = (Explode)msg.extraInfo;
+            ExplodeEvent e = (ExplodeEvent)msg.extraInfo;
             explode(e.cx, e.cy, e.radius, e.falloffRadius, e.damage);
         } break;
-        case Events.PLAYER_LOST: {
-            PlayerLost pl = (PlayerLost)msg.extraInfo;
-            playerLost(pl.player);
+        case Events.PLAYER_LOST_CITy: {
+            PlayerLostCity pl = (PlayerLostCity)msg.extraInfo;
+            if (!pl.player.hasCities()) {
+                playerLost(pl.player);
+            }
         } break;
         }
         return false;

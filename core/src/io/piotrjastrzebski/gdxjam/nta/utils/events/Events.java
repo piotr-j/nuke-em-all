@@ -1,4 +1,4 @@
-package io.piotrjastrzebski.gdxjam.nta.utils;
+package io.piotrjastrzebski.gdxjam.nta.utils.events;
 
 import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.msg.MessageDispatcher;
@@ -9,10 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 public class Events {
     private static final MessageDispatcher dispatcher = new MessageDispatcher();
 
-
     public final static int LAUNCH_NUKE = 1;
     public final static int EXPLODE = 2;
-    public final static int PLAYER_LOST = 3;
+    public final static int PLAYER_LOST_CITy = 3;
 
     public static void register (Telegraph listener, int msg) {
         dispatcher.addListener(listener, msg);
@@ -45,23 +44,15 @@ public class Events {
         dispatcher.dispatchMessage(msg);
     }
 
-    public static void send (int msg, Object extraInfo) {
-        dispatcher.dispatchMessage(msg, extraInfo);
-    }
-
-    public static void send (Telegraph sender, int msg) {
-        dispatcher.dispatchMessage(sender, msg);
-    }
-
-    public static void send (Telegraph sender, int msg, Object extraInfo) {
-        dispatcher.dispatchMessage(sender, msg, extraInfo);
+    public static void send (Event event) {
+        dispatcher.dispatchMessage(event.id(), event);
     }
 
     public static void sendDelayed (float delay, int msg) {
         dispatcher.dispatchMessage(delay, msg);
     }
 
-    public static void sendDelayed (float delay, int msg, Object extraInfo) {
-        dispatcher.dispatchMessage(delay, msg, extraInfo);
+    public static void sendDelayed (float delay, Event event) {
+        dispatcher.dispatchMessage(delay, event.id(), event);
     }
 }

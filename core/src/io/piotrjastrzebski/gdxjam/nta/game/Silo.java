@@ -10,8 +10,8 @@ import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 import io.piotrjastrzebski.gdxjam.nta.game.widgets.Cooldown;
 import io.piotrjastrzebski.gdxjam.nta.game.widgets.HealthBar;
-import io.piotrjastrzebski.gdxjam.nta.utils.Events;
-import io.piotrjastrzebski.gdxjam.nta.utils.command.LaunchNuke;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.LaunchNukeEvent;
 import lombok.extern.slf4j.Slf4j;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
@@ -99,7 +99,7 @@ public class Silo extends Entity {
         float sx = v2.x;
         float sy = v2.y;
         reloadTimer = reloadDuration;
-        Events.send(Events.LAUNCH_NUKE, new LaunchNuke(owner, sx, sy, x, y));
+        Events.send(new LaunchNukeEvent(this, sx, sy, x, y));
     }
 
     @Override

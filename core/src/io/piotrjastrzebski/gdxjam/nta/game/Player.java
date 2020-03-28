@@ -4,8 +4,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
-import io.piotrjastrzebski.gdxjam.nta.utils.Events;
-import io.piotrjastrzebski.gdxjam.nta.utils.command.PlayerLost;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.events.PlayerLostCity;
 
 /**
  * Player in a game
@@ -116,9 +116,7 @@ public class Player {
         if (entity instanceof City) {
             City city = (City)entity;
             cities.removeValue(city, true);
-            if (cities.size == 0) {
-                Events.sendDelayed(1/20f, Events.PLAYER_LOST, new PlayerLost(this));
-            }
+            Events.sendDelayed(1/20f, new PlayerLostCity(this, city));
         } else if (entity instanceof Silo) {
             Silo silo = (Silo)entity;
             silos.removeValue(silo, true);
@@ -126,5 +124,9 @@ public class Player {
             Continent continent = (Continent)entity;
             continents.removeValue(continent, true);
         }
+    }
+
+    public boolean hasCities () {
+        return cities.size > 0;
     }
 }
