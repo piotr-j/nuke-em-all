@@ -8,6 +8,8 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.GameScreen;
+import io.piotrjastrzebski.gdxjam.nta.game.widgets.Cooldown;
+import io.piotrjastrzebski.gdxjam.nta.game.widgets.HealthBar;
 import lombok.extern.slf4j.Slf4j;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
@@ -22,7 +24,6 @@ public class Silo extends Entity {
     protected float reloadDuration = 2;
     protected float reloadTimer = 0;
     protected TargetCircle targetCircle;
-    protected HealthBar healthBar;
 
     public Silo (GameScreen gs, int id) {
         super(gs.game(), id, 20);
@@ -31,9 +32,14 @@ public class Silo extends Entity {
         setBounds(0, 0, .76f, .76f);
         setTouchable(Touchable.enabled);
         health = healthCap = 3;
-        healthBar = new HealthBar(gs.game(), this);
+
+        HealthBar healthBar = new HealthBar(gs.game(), () -> health, () -> healthCap);
         healthBar.setPosition(getWidth() * .5f, -.15f, Align.center);
         addActor(healthBar);
+
+        Cooldown cooldown = new Cooldown(gs.game(), () -> reloadTimer, () -> reloadDuration);
+        cooldown.setPosition(getWidth() * .5f, getHeight()/2, Align.center);
+        addActor(cooldown);
     }
 
     @Override

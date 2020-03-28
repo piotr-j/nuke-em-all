@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
+import io.piotrjastrzebski.gdxjam.nta.game.widgets.HealthBar;
 import lombok.extern.slf4j.Slf4j;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
@@ -13,14 +14,14 @@ import space.earlygrey.shapedrawer.ShapeDrawer;
 @Slf4j
 public class City extends Entity {
     String tag;
-    HealthBar healthBar;
 
     public City (NukeGame game, int id) {
         super(game, id, 11);
         setBounds(0, 0, .76f, .76f);
 
         health = healthCap = 2;
-        healthBar = new HealthBar(game, this);
+
+        HealthBar healthBar = new HealthBar(game, () -> health, () -> healthCap);
         healthBar.setPosition(getWidth() * .5f, -.2f, Align.center);
         addActor(healthBar);
     }

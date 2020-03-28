@@ -1,28 +1,31 @@
-package io.piotrjastrzebski.gdxjam.nta.game;
+package io.piotrjastrzebski.gdxjam.nta.game.widgets;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
+import io.piotrjastrzebski.gdxjam.nta.utils.FloatValue;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
 public class HealthBar extends Actor {
     protected final NukeGame game;
-    protected final Entity entity;
+    protected final FloatValue value;
+    protected final FloatValue cap;
 
-    public HealthBar (NukeGame game, Entity entity) {
+    public HealthBar (NukeGame game, FloatValue value, FloatValue cap) {
         this.game = game;
-        this.entity = entity;
+        this.value = value;
+        this.cap = cap;
         setBounds(0, 0, 1, .25f);
     }
 
     @Override
     public void draw (Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
-        if (entity.healthCap <= 0) return;
+        if (cap.get() <= 0) return;
         ShapeDrawer shapes = game.shapes;
-        float a = MathUtils.clamp(entity.health / entity.healthCap, 0, 1);
+        float a = MathUtils.clamp(value.get() / cap.get(), 0, 1);
 
         // hide if >= 1?
         float x = getX();
