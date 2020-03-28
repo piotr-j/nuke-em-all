@@ -29,6 +29,7 @@ public class Nuke extends Entity {
     protected Vector2 target = new Vector2();
     protected final static Vector2 v2 = new Vector2();
     protected TargetCircle targetCircle;
+    protected boolean destroyed;
 
     public Nuke (NukeGame game, int id) {
         super(game, id, 100);
@@ -44,6 +45,7 @@ public class Nuke extends Entity {
             targetCircle.setPosition(target.x, target.y, Align.center);
             getStage().getRoot().addActorBefore(this, targetCircle);
         }
+        bounds.set(cx(), cy(), blastRadiusInner);
     }
 
     @Override
@@ -63,11 +65,17 @@ public class Nuke extends Entity {
         shapes.circle(cx, cy, blastRadiusOuter, .05f);
     }
 
-    void explode () {
+    public void explode () {
+        if (destroyed) return;
+        destroyed = true;
         clearActions();
         targetCircle.remove();
-        Events.send(Events.EXPLODE, new Explode(cx(), cy(), blastRadiusInner, blastRadiusOuter, blastDamage));
+        Events.sendDelayed(1/20f, Events.EXPLODE, new Explode(cx(), cy(), blastRadiusInner, blastRadiusOuter, blastDamage));
         remove();
+    }
+
+    public boolean isDestroyed () {
+        return destroyed;
     }
 
     public void target (float tx, float ty) {

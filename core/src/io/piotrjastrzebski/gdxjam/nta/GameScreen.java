@@ -5,6 +5,7 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ai.msg.Telegram;
 import com.badlogic.gdx.ai.msg.Telegraph;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
@@ -20,6 +21,8 @@ import io.piotrjastrzebski.gdxjam.nta.utils.Events;
 import io.piotrjastrzebski.gdxjam.nta.utils.command.Explode;
 import io.piotrjastrzebski.gdxjam.nta.utils.command.LaunchNuke;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Iterator;
 
 import static com.badlogic.gdx.utils.Align.center;
 
@@ -102,7 +105,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
     private void overtakeContinent (Continent continent, Player player) {
         continent.owner(player);
 
-        Rectangle bounds = continent.bounds();
+        Rectangle bounds = continent.rectBounds();
         // city count roughly based on area
         int siloCount = Math.min(2 + Math.round(bounds.area()/20), 4);
         Array<Silo> silos = new Array<>();
@@ -138,8 +141,10 @@ public class GameScreen extends BaseScreen implements Telegraph {
                     break;
                 }
             }
+            silo.updateBounds();
             silos.add(silo);
         }
+        this.silos.addAll(silos);
     }
 
     private void continent (ContinentData cd) {
@@ -150,7 +155,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
         entities.add(continent);
         continents.add(continent);
 
-        Rectangle bounds = continent.bounds();
+        Rectangle bounds = continent.rectBounds();
         // city count roughly based on area
         int cityCount = Math.min(2 + Math.round(bounds.area()/20), 4);
         Array<City> cities = new Array<>();
@@ -175,8 +180,10 @@ public class GameScreen extends BaseScreen implements Telegraph {
                     break;
                 }
             }
+            city.updateBounds();
             cities.add(city);
         }
+        this.cities.addAll(cities);
 
     }
 
@@ -185,8 +192,24 @@ public class GameScreen extends BaseScreen implements Telegraph {
         nuke.owner(player);
         nuke.setPosition(sx, sy, center);
         nuke.target(tx, ty);
-
+        nukes.add(nuke);
         gameStage.addActor(nuke);
+
+    }
+
+    private void updateNukes () {
+        for (int i = 0; i < nukes.size; i++) {
+            for (int j = 0; j < nukes.size; j++) {
+                Nuke n1 = nukes.get(i);
+                Nuke n2 = nukes.get(j);
+                if (n1 == n2) continue;;
+                if (n1.isDestroyed() || n2.isDestroyed()) continue;
+                if (n1.bounds().overlaps(n2.bounds())) {
+                    n1.explode();
+                    n2.explode();
+                }
+            }
+        }
     }
 
     public void explode (float cx, float cy, float radius, float falloffRadius, float damage) {
@@ -194,13 +217,47 @@ public class GameScreen extends BaseScreen implements Telegraph {
         explosion.setPosition(cx, cy, Align.center);
         gameStage.addActor(explosion);
 
+        Circle inner = new Circle(cx, cy, radius);
+        Circle outer = new Circle(cx, cy, falloffRadius);
 
-
+        {
+            Iterator<City> it = cities.iterator();
+            while (it.hasNext()) {
+                City entity = it.next();
+                if (!outer.overlaps(entity.bounds())) continue;
+                if (inner.overlaps(entity.bounds())) {
+                    if (entity.damage(damage)) {
+                        it.remove();
+                    }
+                } else {
+                    if (entity.damage(damage/2)) {
+                        it.remove();
+                    }
+                }
+            }
+        }
+        {
+            Iterator<Silo> it = silos.iterator();
+            while (it.hasNext()) {
+                Silo entity = it.next();
+                if (!outer.overlaps(entity.bounds())) continue;
+                if (inner.overlaps(entity.bounds())) {
+                    if (entity.damage(damage)) {
+                        it.remove();
+                    }
+                } else {
+                    if (entity.damage(damage/2)) {
+                        it.remove();
+                    }
+                }
+            }
+        }
     }
 
     @Override
     public void update (float delta) {
         gameStage.act(delta);
+        updateNukes();
         gameStage.draw();
         uiStage.act(delta);
         uiStage.draw();

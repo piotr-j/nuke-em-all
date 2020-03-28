@@ -74,7 +74,7 @@ public class Continent extends Entity {
         }
     }
 
-    public Rectangle bounds () {
+    public Rectangle rectBounds () {
         return data.getBoundingRectangle();
     }
 
