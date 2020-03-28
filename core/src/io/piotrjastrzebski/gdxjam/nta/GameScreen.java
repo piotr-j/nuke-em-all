@@ -1,6 +1,7 @@
 package io.piotrjastrzebski.gdxjam.nta;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ai.msg.Telegram;
 import com.badlogic.gdx.ai.msg.Telegraph;
@@ -20,6 +21,7 @@ import io.piotrjastrzebski.gdxjam.nta.utils.Continents.ContinentData;
 import io.piotrjastrzebski.gdxjam.nta.utils.Events;
 import io.piotrjastrzebski.gdxjam.nta.utils.command.Explode;
 import io.piotrjastrzebski.gdxjam.nta.utils.command.LaunchNuke;
+import io.piotrjastrzebski.gdxjam.nta.utils.command.PlayerLost;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
@@ -31,18 +33,18 @@ public class GameScreen extends BaseScreen implements Telegraph {
     public static int IDS = 0;
 
     Stage gameStage;
-    Array<Entity> entities = new Array<>();
+    Array<Entity> entities;
     // immobile stuff
-    Array<Continent> continents = new Array<>();
-    Array<City> cities = new Array<>();
-    Array<Silo> silos = new Array<>();
+    Array<Continent> continents;
+    Array<City> cities;
+    Array<Silo> silos;
     // mobile stuff
-    Array<Submarine> submarines = new Array<>();
-    Array<Nuke> nukes = new Array<>();
+    Array<Submarine> submarines;
+    Array<Nuke> nukes;
 
-    final Player neutral;
-    final Player player;
-    final Player enemy;
+    Player neutral;
+    Player local;
+    Player remote;
 
     // raw map from wiki https://en.wikipedia.org/wiki/World_map#/media/File:Winkel_triple_projection_SW.jpg
     Texture worldMap;
@@ -51,9 +53,24 @@ public class GameScreen extends BaseScreen implements Telegraph {
         super(game);
         gameStage = new Stage(game.gameViewport, game.batch);
 
+        restart();
+    }
+
+    private void restart () {
+        gameStage.clear();
+
+        entities = new Array<>();
+        // immobile stuff
+        continents = new Array<>();
+        cities = new Array<>();
+        silos = new Array<>();
+        // mobile stuff
+        submarines = new Array<>();
+        nukes = new Array<>();
+
         neutral = new Player(0, "neutral", false);
-        player = new Player(1, "player", true);
-        enemy = new Player(2, "enemy", true);
+        local = new Player(1, "player", true);
+        remote = new Player(2, "enemy", true);
 
         if (false) {
             worldMap = new Texture("world_map.jpg");
@@ -66,20 +83,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
         createContinents();
     }
 
-    @Override
-    public void show () {
-        super.show();
-        Events.register(this, Events.LAUNCH_NUKE, Events.EXPLODE);
-        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gameStage, this));
-    }
-
-    private void createContinents () {
-        // eventually we want something more sensible, rng maybe?
-        // via seed?
-        for (ContinentData continent : Continents.continents()) {
-            continent(continent);
-        }
-
+    private void spanwPlayers () {
         // random initial positions
         // more continents per player?
         Array<Continent> copy = new Array<>(continents);
@@ -89,16 +93,31 @@ public class GameScreen extends BaseScreen implements Telegraph {
         while (true) {
             Continent continent = copy.pop();
             if (continent.cities().size == 4) {
-                overtakeContinent(continent, player);
+                overtakeContinent(continent, local);
                 break;
             }
         }
         while (true) {
             Continent continent = copy.pop();
             if (continent.cities().size == 4) {
-                overtakeContinent(continent, enemy);
+                overtakeContinent(continent, remote);
                 break;
             }
+        }
+    }
+
+    @Override
+    public void show () {
+        super.show();
+        Events.register(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST);
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gameStage, this));
+    }
+
+    private void createContinents () {
+        // eventually we want something more sensible, rng maybe?
+        // via seed?
+        for (ContinentData continent : Continents.continents()) {
+            continent(continent);
         }
     }
 
@@ -187,7 +206,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
     }
 
-    public void launchNuke (Player player, float sx, float sy, float tx, float ty) {
+    private void launchNuke (Player player, float sx, float sy, float tx, float ty) {
         Nuke nuke = new Nuke(game, ++IDS);
         nuke.owner(player);
         nuke.setPosition(sx, sy, center);
@@ -198,6 +217,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
     }
 
     private void updateNukes () {
+        // could be more efficient but whatever
         for (int i = 0; i < nukes.size; i++) {
             for (int j = 0; j < nukes.size; j++) {
                 Nuke n1 = nukes.get(i);
@@ -212,7 +232,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
         }
     }
 
-    public void explode (float cx, float cy, float radius, float falloffRadius, float damage) {
+    private void explode (float cx, float cy, float radius, float falloffRadius, float damage) {
         Explosion explosion = new Explosion(game, radius,  falloffRadius);
         explosion.setPosition(cx, cy, Align.center);
         gameStage.addActor(explosion);
@@ -254,6 +274,14 @@ public class GameScreen extends BaseScreen implements Telegraph {
         }
     }
 
+    private void playerLost (Player player) {
+        if (player == remote) {
+
+        } else if (player == local) {
+
+        }
+    }
+
     @Override
     public void update (float delta) {
         gameStage.act(delta);
@@ -261,11 +289,15 @@ public class GameScreen extends BaseScreen implements Telegraph {
         gameStage.draw();
         uiStage.act(delta);
         uiStage.draw();
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            restart();
+        }
     }
 
     @Override
     public void hide () {
-        Events.unregister(this, Events.LAUNCH_NUKE, Events.EXPLODE);
+        Events.unregister(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST);
         super.hide();
     }
 
@@ -277,11 +309,11 @@ public class GameScreen extends BaseScreen implements Telegraph {
     }
 
     public Player player () {
-        return player;
+        return local;
     }
 
     public Player enemy () {
-        return enemy;
+        return remote;
     }
 
     @Override
@@ -294,6 +326,10 @@ public class GameScreen extends BaseScreen implements Telegraph {
         case Events.EXPLODE: {
             Explode e = (Explode)msg.extraInfo;
             explode(e.cx, e.cy, e.radius, e.falloffRadius, e.damage);
+        } break;
+        case Events.PLAYER_LOST: {
+            PlayerLost pl = (PlayerLost)msg.extraInfo;
+            playerLost(pl.player);
         } break;
         }
         return false;

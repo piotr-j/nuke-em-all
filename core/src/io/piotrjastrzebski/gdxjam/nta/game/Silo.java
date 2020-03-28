@@ -7,7 +7,6 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.utils.Align;
-import io.piotrjastrzebski.gdxjam.nta.GameScreen;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 import io.piotrjastrzebski.gdxjam.nta.game.widgets.Cooldown;
 import io.piotrjastrzebski.gdxjam.nta.game.widgets.HealthBar;
@@ -90,6 +89,12 @@ public class Silo extends Entity {
         float sy = v2.y;
         reloadTimer = reloadDuration;
         Events.send(Events.LAUNCH_NUKE, new LaunchNuke(owner, sx, sy, tx, ty));
+    }
+
+    @Override
+    protected void onDestroy () {
+        super.onDestroy();
+        owner.remove(this);
     }
 
     @Override

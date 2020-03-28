@@ -12,6 +12,7 @@ public class Events {
 
     public final static int LAUNCH_NUKE = 1;
     public final static int EXPLODE = 2;
+    public final static int PLAYER_LOST = 3;
 
     public static void register (Telegraph listener, int msg) {
         dispatcher.addListener(listener, msg);

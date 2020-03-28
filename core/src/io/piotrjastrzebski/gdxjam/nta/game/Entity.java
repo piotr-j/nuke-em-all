@@ -43,7 +43,13 @@ public abstract class Entity extends Group implements Comparable<Entity> {
     }
 
     public void owner (Player player) {
+        if (this.owner != null) {
+            this.owner.remove(this);
+        }
         this.owner = player;
+        if (this.owner != null) {
+            this.owner.add(this);
+        }
         // event of some sort?
     }
 
@@ -73,15 +79,19 @@ public abstract class Entity extends Group implements Comparable<Entity> {
         health -= damage;
         if (health <= 0) {
             health = 0;
-            localToStageCoordinates(v2.set(getWidth()/2, getHeight()/2));
-            Events.sendDelayed(1/20f, Events.EXPLODE, new Explode(v2.x, v2.y, .5f, 1f, .2f));
-            addAction(Actions.sequence(
-                Actions.delay(1/20f),
-                Actions.removeActor()
-            ));
+            onDestroy();
             return true;
         }
         return false;
+    }
+
+    protected void onDestroy () {
+        localToStageCoordinates(v2.set(getWidth()/2, getHeight()/2));
+        Events.sendDelayed(1/20f, Events.EXPLODE, new Explode(v2.x, v2.y, .5f, 1f, .2f));
+        addAction(Actions.sequence(
+            Actions.delay(1/20f),
+            Actions.removeActor()
+        ));
     }
 
     public Circle bounds () {
