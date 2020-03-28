@@ -2,23 +2,29 @@ package io.piotrjastrzebski.gdxjam.nta;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.ai.msg.Telegram;
+import com.badlogic.gdx.ai.msg.Telegraph;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import io.piotrjastrzebski.gdxjam.nta.game.*;
-import io.piotrjastrzebski.gdxjam.nta.game.Continents.ContinentData;
+import io.piotrjastrzebski.gdxjam.nta.utils.Continents;
+import io.piotrjastrzebski.gdxjam.nta.utils.Continents.ContinentData;
+import io.piotrjastrzebski.gdxjam.nta.utils.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.command.Explode;
+import io.piotrjastrzebski.gdxjam.nta.utils.command.LaunchNuke;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.badlogic.gdx.utils.Align.center;
 
 @Slf4j
-public class GameScreen extends BaseScreen {
+public class GameScreen extends BaseScreen implements Telegraph {
     public static int IDS = 0;
 
     Stage gameStage;
@@ -42,9 +48,9 @@ public class GameScreen extends BaseScreen {
         super(game);
         gameStage = new Stage(game.gameViewport, game.batch);
 
-        neutral = new Player(0, "neutral");
-        player = new Player(1, "player");
-        enemy = new Player(2, "enemy");
+        neutral = new Player(0, "neutral", false);
+        player = new Player(1, "player", true);
+        enemy = new Player(2, "enemy", true);
 
         if (false) {
             worldMap = new Texture("world_map.jpg");
@@ -60,7 +66,7 @@ public class GameScreen extends BaseScreen {
     @Override
     public void show () {
         super.show();
-
+        Events.register(this, Events.LAUNCH_NUKE, Events.EXPLODE);
         Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gameStage, this));
     }
 
@@ -102,7 +108,7 @@ public class GameScreen extends BaseScreen {
         Array<Silo> silos = new Array<>();
         Array<City> cities = continent.cities();
         for (int i = 0; i < siloCount; i++) {
-            Silo silo = new Silo(this, ++IDS);
+            Silo silo = new Silo(game, ++IDS);
             silo.owner(player);
             continent.addActor(silo);
 
@@ -174,29 +180,34 @@ public class GameScreen extends BaseScreen {
 
     }
 
-    Vector2 v2 = new Vector2();
-    public void launchNuke (Silo from, float tx, float ty) {
-        from.localToStageCoordinates(v2.set(from.getWidth()/2, from.getHeight()/2));
-
+    public void launchNuke (Player player, float sx, float sy, float tx, float ty) {
         Nuke nuke = new Nuke(game, ++IDS);
-        nuke.owner(from.owner());
-        nuke.setPosition(v2.x, v2.y, center);
+        nuke.owner(player);
+        nuke.setPosition(sx, sy, center);
         nuke.target(tx, ty);
 
         gameStage.addActor(nuke);
     }
 
+    public void explode (float cx, float cy, float radius, float falloffRadius, float damage) {
+        Explosion explosion = new Explosion(game);
+        explosion.setPosition(cx, cy, Align.center);
+        gameStage.addActor(explosion);
+
+    }
+
     @Override
-    public void render (float delta) {
-        super.render(delta);
-
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
+    public void update (float delta) {
         gameStage.act(delta);
         gameStage.draw();
         uiStage.act(delta);
         uiStage.draw();
+    }
+
+    @Override
+    public void hide () {
+        Events.unregister(this, Events.LAUNCH_NUKE, Events.EXPLODE);
+        super.hide();
     }
 
     @Override
@@ -212,5 +223,20 @@ public class GameScreen extends BaseScreen {
 
     public Player enemy () {
         return enemy;
+    }
+
+    @Override
+    public boolean handleMessage (Telegram msg) {
+        switch (msg.message) {
+        case Events.LAUNCH_NUKE: {
+            LaunchNuke ln = (LaunchNuke)msg.extraInfo;
+            launchNuke(ln.player, ln.sx, ln.sy, ln.tx, ln.ty);
+        } break;
+        case Events.EXPLODE: {
+            Explode e = (Explode)msg.extraInfo;
+            explode(e.cx, e.cy, e.radius, e.falloffRadius, e.damage);
+        } break;
+        }
+        return false;
     }
 }

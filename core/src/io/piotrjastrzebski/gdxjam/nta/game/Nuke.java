@@ -1,11 +1,14 @@
 package io.piotrjastrzebski.gdxjam.nta.game;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
+import io.piotrjastrzebski.gdxjam.nta.utils.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.command.Explode;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
 /**
@@ -20,6 +23,7 @@ public class Nuke extends Entity {
 
     public static float blastRadiusOuter = 1f;
     public static float blastRadiusInner = .5f;
+    public static float blastDamage = 1.2f; // center
     public static float flySpeed = 2f;
     // stage coordinates
     protected Vector2 target = new Vector2();
@@ -49,8 +53,11 @@ public class Nuke extends Entity {
         float cx = cx();
         float cy = cy();
         // tint parts or something
-        shapes.setColor(owner.tint);
+        shapes.setColor(Color.GRAY);
         shapes.filledRectangle(getX(), getY(), getWidth(), getHeight(), getRotation() * MathUtils.degRad);
+        float o = getWidth() * .2f;
+        shapes.setColor(owner.tint);
+        shapes.filledRectangle(getX() + o, getY() + o, getWidth() - o * 2, getHeight() - o * 2, getRotation() * MathUtils.degRad);
 
         shapes.setColor(owner.tint.r, owner.tint.g, owner.tint.b, .3f);
         shapes.circle(cx, cy, blastRadiusOuter, .05f);
@@ -58,10 +65,8 @@ public class Nuke extends Entity {
 
     void explode () {
         clearActions();
-        Explosion explosion = new Explosion(game);
-        explosion.setPosition(cx(), cy(), Align.center);
-        getStage().addActor(explosion);
         targetCircle.remove();
+        Events.send(Events.EXPLODE, new Explode(cx(), cy(), blastRadiusInner, blastRadiusOuter, blastDamage));
         remove();
     }
 

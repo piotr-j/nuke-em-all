@@ -8,8 +8,11 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.GameScreen;
+import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 import io.piotrjastrzebski.gdxjam.nta.game.widgets.Cooldown;
 import io.piotrjastrzebski.gdxjam.nta.game.widgets.HealthBar;
+import io.piotrjastrzebski.gdxjam.nta.utils.Events;
+import io.piotrjastrzebski.gdxjam.nta.utils.command.LaunchNuke;
 import lombok.extern.slf4j.Slf4j;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
@@ -18,26 +21,24 @@ import space.earlygrey.shapedrawer.ShapeDrawer;
  */
 @Slf4j
 public class Silo extends Entity {
-    protected final GameScreen gs;
     protected Vector2 target = new Vector2();
     protected boolean targeting;
     protected float reloadDuration = 2;
     protected float reloadTimer = 0;
     protected TargetCircle targetCircle;
 
-    public Silo (GameScreen gs, int id) {
-        super(gs.game(), id, 20);
-        this.gs = gs;
+    public Silo (NukeGame game, int id) {
+        super(game, id, 20);
         // do we make these smaller?
         setBounds(0, 0, .76f, .76f);
         setTouchable(Touchable.enabled);
         health = healthCap = 3;
 
-        HealthBar healthBar = new HealthBar(gs.game(), () -> health, () -> healthCap);
+        HealthBar healthBar = new HealthBar(game, () -> health, () -> healthCap);
         healthBar.setPosition(getWidth() * .5f, -.15f, Align.center);
         addActor(healthBar);
 
-        Cooldown cooldown = new Cooldown(gs.game(), () -> reloadTimer, () -> reloadDuration);
+        Cooldown cooldown = new Cooldown(game, () -> reloadTimer, () -> reloadDuration);
         cooldown.setPosition(getWidth() * .5f, getHeight()/2, Align.center);
         addActor(cooldown);
     }
@@ -47,7 +48,7 @@ public class Silo extends Entity {
         super.owner(player);
         clearListeners();
 
-        if (player != gs.player()) return;
+        if (!player.isLocal()) return;
 
         addListener(new ActorGestureListener(.4f, 0.4f, 1.1f, 0.15f) {
             @Override
@@ -78,11 +79,17 @@ public class Silo extends Entity {
             return;
         }
         if (targetCircle != null) targetCircle.remove();
-        v2.set(x, y);
-        localToStageCoordinates(v2);
-        log.warn("Silo#{} launching at {}", id, v2);
+
+        localToStageCoordinates(v2.set(x, y));
+        float tx = v2.x;
+        float ty = v2.y;
+        log.debug("Silo#{} launching at {}", id, v2);
+
+        localToStageCoordinates(v2.set(getWidth()/2, getHeight()/2));
+        float sx = v2.x;
+        float sy = v2.y;
         reloadTimer = reloadDuration;
-        gs.launchNuke(this, v2.x, v2.y);
+        Events.send(Events.LAUNCH_NUKE, new LaunchNuke(owner, sx, sy, tx, ty));
     }
 
     @Override
@@ -94,7 +101,7 @@ public class Silo extends Entity {
         }
         if (targeting) {
             if (targetCircle == null) {
-                targetCircle = new TargetCircle(gs.game());
+                targetCircle = new TargetCircle(game);
             }
             if (targetCircle.getParent() == null) {
                 getStage().addActor(targetCircle);

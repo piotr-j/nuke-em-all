@@ -3,6 +3,7 @@ package io.piotrjastrzebski.gdxjam.nta.game;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 import space.earlygrey.shapedrawer.ShapeDrawer;
@@ -23,6 +24,7 @@ public class Explosion extends Actor {
         super();
         this.game = game;
         setBounds(0, 0, Nuke.blastRadiusOuter, Nuke.blastRadiusOuter);
+        setTouchable(Touchable.disabled);
     }
 
     float duration = .5f;

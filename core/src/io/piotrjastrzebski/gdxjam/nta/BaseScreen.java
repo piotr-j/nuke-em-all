@@ -4,9 +4,12 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import io.piotrjastrzebski.gdxjam.nta.utils.Events;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
 public class BaseScreen implements Screen, InputProcessor {
@@ -36,6 +39,15 @@ public class BaseScreen implements Screen, InputProcessor {
 
     @Override
     public void render (float delta) {
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        float dt = MathUtils.clamp(delta, 1/60f, 1/20f);
+        update(dt);
+        Events.update(dt);
+    }
+
+    protected void update (float delta) {
 
     }
 

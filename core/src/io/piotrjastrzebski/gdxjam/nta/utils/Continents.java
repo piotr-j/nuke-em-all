@@ -1,4 +1,4 @@
-package io.piotrjastrzebski.gdxjam.nta.game;
+package io.piotrjastrzebski.gdxjam.nta.utils;
 
 import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;

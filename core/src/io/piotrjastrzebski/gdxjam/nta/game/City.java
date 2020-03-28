@@ -2,6 +2,7 @@ package io.piotrjastrzebski.gdxjam.nta.game;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 import io.piotrjastrzebski.gdxjam.nta.game.widgets.HealthBar;
@@ -24,6 +25,7 @@ public class City extends Entity {
         HealthBar healthBar = new HealthBar(game, () -> health, () -> healthCap);
         healthBar.setPosition(getWidth() * .5f, -.2f, Align.center);
         addActor(healthBar);
+        setTouchable(Touchable.disabled);
     }
 
     @Override

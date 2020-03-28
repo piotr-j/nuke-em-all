@@ -16,6 +16,7 @@ public class Player {
 
     public final int id;
     public final String name;
+    public final boolean local;
     // tint added to owned stuff
     public final Color tint = new Color(Color.WHITE);
 
@@ -28,9 +29,14 @@ public class Player {
 
     Array<City> cities = new Array<>();
 
-    public Player (int id, String name) {
+    public Player (int id, String name, boolean local) {
         this.id = id;
         this.name = name;
+        this.local = local;
         this.tint.set(tints[id % tints.length]);
+    }
+
+    public boolean isLocal () {
+        return local;
     }
 }
