@@ -34,6 +34,7 @@ import static com.badlogic.gdx.utils.Align.center;
 @Slf4j
 public class GameScreen extends BaseScreen implements Telegraph {
     public static int IDS = 0;
+    final int maxCities = 4;
 
     Stage gameStage;
     Array<Entity> entities;
@@ -58,9 +59,11 @@ public class GameScreen extends BaseScreen implements Telegraph {
         gameStage = new Stage(game.gameViewport, game.batch);
 
         restart();
+        createStartUI();
     }
 
     private void restart () {
+        IDS = 0;
         gameStage.clear();
 
         entities = new Array<>();
@@ -74,6 +77,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
         players = new Array<>();
         neutral = new Player(0, "neutral", false, players);
+        local = null;
+        remote = null;
 
         if (false) {
             worldMap = new Texture("world_map.jpg");
@@ -83,9 +88,46 @@ public class GameScreen extends BaseScreen implements Telegraph {
             gameStage.addActor(image);
         }
 
-        createContinents();
+        // eventually we want something more sensible, rng maybe?
+        // via seed?
+        for (ContinentData cd : Continents.continents()) {
+            Continent continent = new Continent(game, ++IDS);
+            continent.init(cd);
+            continent.owner(neutral);
+            gameStage.addActor(continent);
+            entities.add(continent);
+            continents.add(continent);
 
-        createStartUI();
+            Rectangle bounds = continent.rectBounds();
+            // city count roughly based on area
+            int cityCount = Math.min(2 + Math.round(bounds.area()/20), maxCities);
+            Array<City> cities = new Array<>();
+            for (int i = 0; i < cityCount; i++) {
+                City city = new City(game, ++IDS);
+                continent.addActor(city);
+
+                for (int j = 0; j < 1000; j++) {
+                    city.setPosition(
+                        MathUtils.random(0, bounds.width - city.getWidth()),
+                        MathUtils.random(0, bounds.height - city.getHeight())
+                    );
+                    boolean tooClose = false;
+                    for (City other : cities) {
+                        float dst = Vector2.dst(other.getX(center), other.getY(center), city.getX(center), city.getY(center));
+                        if (dst < other.getWidth() * 2) {
+                            tooClose = true;
+                        }
+                    }
+
+                    if (!tooClose && continent.contains(city.getX(center), city.getY())) {
+                        break;
+                    }
+                }
+                city.updateBounds();
+                cities.add(city);
+            }
+            this.cities.addAll(cities);
+        }
     }
 
     private void createStartUI () {
@@ -169,32 +211,17 @@ public class GameScreen extends BaseScreen implements Telegraph {
         // there should be a few matching continents
         while (true) {
             Continent continent = copy.pop();
-            if (continent.cities().size == 1) {
+            if (continent.cities().size == maxCities) {
                 overtakeContinent(continent, local);
                 break;
             }
         }
         while (true) {
             Continent continent = copy.pop();
-            if (continent.cities().size == 1) {
+            if (continent.cities().size == maxCities) {
                 overtakeContinent(continent, remote);
                 break;
             }
-        }
-    }
-
-    @Override
-    public void show () {
-        super.show();
-        Events.register(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST);
-        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gameStage, this));
-    }
-
-    private void createContinents () {
-        // eventually we want something more sensible, rng maybe?
-        // via seed?
-        for (ContinentData continent : Continents.continents()) {
-            continent(continent);
         }
     }
 
@@ -202,11 +229,9 @@ public class GameScreen extends BaseScreen implements Telegraph {
         continent.owner(player);
 
         Rectangle bounds = continent.rectBounds();
-        // city count roughly based on area
-        int siloCount = Math.min(2 + Math.round(bounds.area()/20), 4);
         Array<Silo> silos = new Array<>();
         Array<City> cities = continent.cities();
-        for (int i = 0; i < siloCount; i++) {
+        for (int i = 0; i < cities.size; i++) {
             Silo silo = new Silo(game, ++IDS);
             silo.owner(player);
             continent.addActor(silo);
@@ -241,46 +266,6 @@ public class GameScreen extends BaseScreen implements Telegraph {
             silos.add(silo);
         }
         this.silos.addAll(silos);
-    }
-
-    private void continent (ContinentData cd) {
-        Continent continent = new Continent(game, ++IDS);
-        continent.init(cd);
-        continent.owner(neutral);
-        gameStage.addActor(continent);
-        entities.add(continent);
-        continents.add(continent);
-
-        Rectangle bounds = continent.rectBounds();
-        // city count roughly based on area
-        int cityCount = 1;// Math.min(2 + Math.round(bounds.area()/20), 4);
-        Array<City> cities = new Array<>();
-        for (int i = 0; i < cityCount; i++) {
-            City city = new City(game, ++IDS);
-            continent.addActor(city);
-
-            for (int j = 0; j < 1000; j++) {
-                city.setPosition(
-                    MathUtils.random(0, bounds.width - city.getWidth()),
-                    MathUtils.random(0, bounds.height - city.getHeight())
-                );
-                boolean tooClose = false;
-                for (City other : cities) {
-                    float dst = Vector2.dst(other.getX(center), other.getY(center), city.getX(center), city.getY(center));
-                    if (dst < other.getWidth() * 2) {
-                        tooClose = true;
-                    }
-                }
-
-                if (!tooClose && continent.contains(city.getX(center), city.getY())) {
-                    break;
-                }
-            }
-            city.updateBounds();
-            cities.add(city);
-        }
-        this.cities.addAll(cities);
-
     }
 
     private void launchNuke (Player player, float sx, float sy, float tx, float ty) {
@@ -357,7 +342,6 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
     private void playerLost (Player player) {
         if (player == neutral) return;
-        restart();
 
         uiStage.clear();
         Skin skin = game.skin;
@@ -368,7 +352,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
         Table content = dialog.getContentTable().pad(16);
         content.add(new Label("Congratulations!", skin)).left().row();
-        if (player == remote) {
+        // we assume two players
+        if (!player.isPlayerControlled()) {
             content.add(new Label("Everyone lost, but you lost the least i guess?", skin)).left().row();
             dialog.addAction(Actions.delay(.5f, Actions.run(() -> game.sounds.won.play())));
         } else {
@@ -384,12 +369,21 @@ public class GameScreen extends BaseScreen implements Telegraph {
                 @Override
                 public void changed (ChangeEvent event, Actor actor) {
                     dialog.hide();
-                    restart();
+                    createStartUI();
                 }
             });
-            buttons.add(button).expandX().left().row();
+            buttons.add(button).expandX().row();
         }
         dialog.show(uiStage);
+
+        restart();
+    }
+
+    @Override
+    public void show () {
+        super.show();
+        Events.register(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST);
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gameStage, this));
     }
 
     @Override
@@ -418,14 +412,6 @@ public class GameScreen extends BaseScreen implements Telegraph {
         super.dispose();
         gameStage.dispose();
         if (worldMap != null) worldMap.dispose();
-    }
-
-    public Player player () {
-        return local;
-    }
-
-    public Player enemy () {
-        return remote;
     }
 
     @Override
