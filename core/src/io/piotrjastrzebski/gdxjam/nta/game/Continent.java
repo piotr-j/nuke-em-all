@@ -65,12 +65,9 @@ public class Continent extends Entity {
 
     @Override
     public void owner (Player owner) {
-        if (this.owner != null) {
-            this.owner.continents.removeValue(this, true);
-        }
         super.owner(owner);
-        if (this.owner != null) {
-            this.owner.continents.add(this);
+        for (City city : cities()) {
+            city.owner(owner);
         }
     }
 

@@ -10,8 +10,10 @@ import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
@@ -42,6 +44,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
     Array<Submarine> submarines;
     Array<Nuke> nukes;
 
+    Array<Player> players;
     Player neutral;
     Player local;
     Player remote;
@@ -68,9 +71,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
         submarines = new Array<>();
         nukes = new Array<>();
 
-        neutral = new Player(0, "neutral", false);
-        local = new Player(1, "player", true);
-        remote = new Player(2, "enemy", true);
+        players = new Array<>();
+        neutral = new Player(0, "neutral", false, players);
 
         if (false) {
             worldMap = new Texture("world_map.jpg");
@@ -81,9 +83,82 @@ public class GameScreen extends BaseScreen implements Telegraph {
         }
 
         createContinents();
+
+        createStartUI();
     }
 
-    private void spanwPlayers () {
+    private void createStartUI () {
+        uiStage.clear();
+        Skin skin = game.skin;
+        Dialog dialog = new Dialog("NUKE THEM ALL", skin);
+        dialog.getTitleTable().pad(16);
+        dialog.setModal(true);
+        dialog.setMovable(false);
+
+        Table content = dialog.getContentTable().pad(16);
+        content.add(new Label("Wipe out enemy cities with nukes to win!", skin)).left().row();
+        content.add(new Label("Launch nuke by dragging from owned silo", skin)).left().row();
+        content.add(new Label("YOU are [GREEN]green[]", skin)).left().row();
+        content.add(new Label("ENEMY is [RED]red[]", skin)).left().row();
+
+        Table buttons = new Table();
+        content.add(buttons).grow();
+        {
+            Button button = new ImageTextButton("Player VS Bot", skin);
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    dialog.hide();
+                    startLocalVsBot();
+                }
+            });
+            buttons.add(button).expandX().left().row();
+        }
+        {
+            Button button = new ImageTextButton("Player VS Player Local", skin);
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    dialog.hide();
+                    startLocalVsLocal();
+                }
+            });
+            buttons.add(button).expandX().left().row();
+        }
+        {
+            Button button = new ImageTextButton("Player VS Player Online", skin);
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    dialog.hide();
+                    startLocalVsRemove();
+                }
+            });
+            buttons.add(button).expandX().left().row();
+        }
+        dialog.show(uiStage);
+    }
+
+    private void startLocalVsBot () {
+        local = new Player(1, "player", true, players);
+        remote = new Player(2, "enemy", false, players);
+        remote.bot();
+        spawnPlayers();
+    }
+
+    private void startLocalVsLocal () {
+        local = new Player(1, "player", true, players);
+        remote = new Player(2, "enemy", true, players);
+        spawnPlayers();
+    }
+
+    private void startLocalVsRemove () {
+        local = new Player(1, "player", true, players);
+        remote = new Player(2, "enemy", false, players);
+        spawnPlayers();
+    }
+
+    private void spawnPlayers () {
         // random initial positions
         // more continents per player?
         Array<Continent> copy = new Array<>(continents);
@@ -92,14 +167,14 @@ public class GameScreen extends BaseScreen implements Telegraph {
         // there should be a few matching continents
         while (true) {
             Continent continent = copy.pop();
-            if (continent.cities().size == 4) {
+            if (continent.cities().size == 1) {
                 overtakeContinent(continent, local);
                 break;
             }
         }
         while (true) {
             Continent continent = copy.pop();
-            if (continent.cities().size == 4) {
+            if (continent.cities().size == 1) {
                 overtakeContinent(continent, remote);
                 break;
             }
@@ -176,7 +251,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
         Rectangle bounds = continent.rectBounds();
         // city count roughly based on area
-        int cityCount = Math.min(2 + Math.round(bounds.area()/20), 4);
+        int cityCount = 1;// Math.min(2 + Math.round(bounds.area()/20), 4);
         Array<City> cities = new Array<>();
         for (int i = 0; i < cityCount; i++) {
             City city = new City(game, ++IDS);
@@ -224,6 +299,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
                 Nuke n2 = nukes.get(j);
                 if (n1 == n2) continue;;
                 if (n1.isDestroyed() || n2.isDestroyed()) continue;
+                // dont nuke self
+                if (n1.owner() == n2.owner()) continue;
                 if (n1.bounds().overlaps(n2.bounds())) {
                     n1.explode();
                     n2.explode();
@@ -275,17 +352,46 @@ public class GameScreen extends BaseScreen implements Telegraph {
     }
 
     private void playerLost (Player player) {
+        if (player == neutral) return;
+        restart();
+
+        uiStage.clear();
+        Skin skin = game.skin;
+        Dialog dialog = new Dialog("NUKE THEM ALL", skin);
+        dialog.getTitleTable().pad(16);
+        dialog.setModal(true);
+        dialog.setMovable(false);
+
+        Table content = dialog.getContentTable().pad(16);
+        content.add(new Label("Congratulations!", skin)).left().row();
         if (player == remote) {
-
-        } else if (player == local) {
-
+            content.add(new Label("Everyone lost, but you lost the least i guess?", skin)).left().row();
+        } else {
+            content.add(new Label("Everyone lost, but you lost extra hard i guess?", skin)).left().row();
         }
+
+        Table buttons = new Table();
+        content.add(buttons).grow();
+        {
+            Button button = new ImageTextButton("RESTART", skin);
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    dialog.hide();
+                    restart();
+                }
+            });
+            buttons.add(button).expandX().left().row();
+        }
+        dialog.show(uiStage);
     }
 
     @Override
     public void update (float delta) {
         gameStage.act(delta);
         updateNukes();
+        if (local != null) local.update(delta);
+        if (remote != null) remote.update(delta);
         gameStage.draw();
         uiStage.act(delta);
         uiStage.draw();

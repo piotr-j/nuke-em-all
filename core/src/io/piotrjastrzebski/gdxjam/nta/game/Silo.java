@@ -22,7 +22,7 @@ import space.earlygrey.shapedrawer.ShapeDrawer;
 public class Silo extends Entity {
     protected Vector2 target = new Vector2();
     protected boolean targeting;
-    protected float reloadDuration = 2;
+    protected float reloadDuration = 5;
     protected float reloadTimer = 0;
     protected TargetCircle targetCircle;
 
@@ -32,6 +32,7 @@ public class Silo extends Entity {
         setBounds(0, 0, .76f, .76f);
         setTouchable(Touchable.enabled);
         health = healthCap = 3;
+        reloadTimer = reloadDuration;
 
         HealthBar healthBar = new HealthBar(game, () -> health, () -> healthCap);
         healthBar.setPosition(getWidth() * .5f, -.15f, Align.center);
@@ -47,7 +48,7 @@ public class Silo extends Entity {
         super.owner(player);
         clearListeners();
 
-        if (!player.isLocal()) return;
+        if (!player.isPlayerControlled()) return;
 
         addListener(new ActorGestureListener(.4f, 0.4f, 1.1f, 0.15f) {
             @Override
@@ -65,36 +66,30 @@ public class Silo extends Entity {
             @Override
             public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
                 if (targeting) {
-                    launch(target.x, target.y);
+                    localToStageCoordinates(v2.set(x, y));
+                    launch(v2.x, v2.y);
                 }
                 targeting = false;
             }
         });
     }
 
+    public boolean canLaunch() {
+        return reloadTimer <= 0;
+    }
+
     public void launch (float x, float y) {
-        if (reloadTimer > 0) {
+        if (!canLaunch()) {
             log.warn("Silo#{} cant fire now, reloading {}", id, reloadTimer);
             return;
         }
         if (targetCircle != null) targetCircle.remove();
-
-        localToStageCoordinates(v2.set(x, y));
-        float tx = v2.x;
-        float ty = v2.y;
-        log.debug("Silo#{} launching at {}", id, v2);
-
+        log.debug("Silo#{} launching at {}, {}", id, x, y);
         localToStageCoordinates(v2.set(getWidth()/2, getHeight()/2));
         float sx = v2.x;
         float sy = v2.y;
         reloadTimer = reloadDuration;
-        Events.send(Events.LAUNCH_NUKE, new LaunchNuke(owner, sx, sy, tx, ty));
-    }
-
-    @Override
-    protected void onDestroy () {
-        super.onDestroy();
-        owner.remove(this);
+        Events.send(Events.LAUNCH_NUKE, new LaunchNuke(owner, sx, sy, x, y));
     }
 
     @Override

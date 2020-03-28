@@ -4,7 +4,6 @@ import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.actions.AddAction;
 import com.badlogic.gdx.utils.Align;
 import io.piotrjastrzebski.gdxjam.nta.NukeGame;
 import io.piotrjastrzebski.gdxjam.nta.utils.Events;
@@ -23,7 +22,7 @@ public abstract class Entity extends Group implements Comparable<Entity> {
     protected Player owner;
 
     protected float health = 1;
-    protected float healthCap = 2;
+    protected float healthCap = -1;
     protected float healthRepair = .05f;
 
 
@@ -57,23 +56,21 @@ public abstract class Entity extends Group implements Comparable<Entity> {
         return owner;
     }
 
-    public float cx () {
+    float cx () {
         return getX(Align.center);
     }
 
-    public float cy () {
+    float cy () {
         return getY(Align.center);
     }
 
-    public float health () {
-        return health;
-    }
-
-    public float healthCap () {
-        return healthCap;
+    public Vector2 sc () {
+        localToStageCoordinates(v2.set(getWidth() / 2, getHeight() / 2));
+        return v2;
     }
 
     public boolean damage (float damage) {
+        if (healthCap < 0) return false;
         if (health <= 0) return true;
 
         health -= damage;
@@ -86,8 +83,11 @@ public abstract class Entity extends Group implements Comparable<Entity> {
     }
 
     protected void onDestroy () {
-        localToStageCoordinates(v2.set(getWidth()/2, getHeight()/2));
-        Events.sendDelayed(1/20f, Events.EXPLODE, new Explode(v2.x, v2.y, .5f, 1f, .2f));
+        if (owner != null) {
+            owner.remove(this);
+        }
+        Vector2 sc = sc();
+        Events.sendDelayed(1/20f, Events.EXPLODE, new Explode(sc.x, sc.y, .5f, 1f, .2f));
         addAction(Actions.sequence(
             Actions.delay(1/20f),
             Actions.removeActor()
@@ -121,7 +121,7 @@ public abstract class Entity extends Group implements Comparable<Entity> {
     }
 
     public void updateBounds () {
-        localToStageCoordinates(v2.set(getWidth()/2, getHeight()/2));
-        bounds.set(v2.x, v2.y, Math.max(getWidth(), getHeight())/2);
+        Vector2 sc = sc();
+        bounds.set(sc.x, sc.y, Math.max(getWidth(), getHeight())/2);
     }
 }

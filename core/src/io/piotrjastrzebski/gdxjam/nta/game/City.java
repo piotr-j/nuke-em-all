@@ -14,8 +14,6 @@ import space.earlygrey.shapedrawer.ShapeDrawer;
  */
 @Slf4j
 public class City extends Entity {
-    String tag;
-
     public City (NukeGame game, int id) {
         super(game, id, 11);
         setBounds(0, 0, .76f, .76f);
