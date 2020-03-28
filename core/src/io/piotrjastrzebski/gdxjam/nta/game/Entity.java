@@ -24,6 +24,8 @@ public abstract class Entity extends Group implements Comparable<Entity> {
 
     protected float health = 1;
     protected float healthCap = 2;
+    protected float healthRepair = .05f;
+
 
     public Entity (NukeGame game, int id, int sort) {
         super();
@@ -32,6 +34,13 @@ public abstract class Entity extends Group implements Comparable<Entity> {
         this.sort = sort;
     }
 
+    @Override
+    public void act (float delta) {
+        super.act(delta);
+        // perhaps tap to repair? make things offline till it is fully repaired
+        health += healthRepair * delta;
+        if (health > healthCap) health = healthCap;
+    }
 
     public void owner (Player player) {
         this.owner = player;
