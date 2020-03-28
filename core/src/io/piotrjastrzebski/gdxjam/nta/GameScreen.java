@@ -190,9 +190,11 @@ public class GameScreen extends BaseScreen implements Telegraph {
     }
 
     public void explode (float cx, float cy, float radius, float falloffRadius, float damage) {
-        Explosion explosion = new Explosion(game);
+        Explosion explosion = new Explosion(game, radius,  falloffRadius);
         explosion.setPosition(cx, cy, Align.center);
         gameStage.addActor(explosion);
+
+
 
     }
 

@@ -19,11 +19,15 @@ import space.earlygrey.shapedrawer.ShapeDrawer;
 public class Explosion extends Actor {
     protected final NukeGame game;
     protected boolean exploded;
+    protected float innerRadius;
+    protected float outerRadius;
 
-    public Explosion (NukeGame game) {
+    public Explosion (NukeGame game, float innerRadius, float outerRadius) {
         super();
         this.game = game;
-        setBounds(0, 0, Nuke.blastRadiusOuter, Nuke.blastRadiusOuter);
+        this.innerRadius = innerRadius;
+        this.outerRadius = outerRadius;
+        setBounds(0, 0, outerRadius, outerRadius);
         setTouchable(Touchable.disabled);
     }
 
@@ -36,6 +40,7 @@ public class Explosion extends Actor {
         if (!exploded) {
             if (timer > duration) {
                 timer -= duration;
+                duration *= 2;
                 exploded = true;
             }
         } else {
@@ -51,22 +56,22 @@ public class Explosion extends Actor {
         ShapeDrawer shapes = game.shapes;
         float cx = getX(Align.center);
         float cy = getY(Align.center);
-        float a = timer / duration;
+        float a = 1 - timer / duration;
         if (exploded) {
-            shapes.setColor(.3f, .3f, .3f, .75f);
-            shapes.filledCircle(cx, cy, Nuke.blastRadiusOuter);
-            shapes.setColor(.1f, .1f, .1f, .9f);
-            shapes.filledCircle(cx, cy, Nuke.blastRadiusInner);
+            shapes.setColor(.3f, .3f, .3f, .75f * a);
+            shapes.filledCircle(cx, cy, outerRadius);
+            shapes.setColor(.1f, .1f, .1f, .9f * a);
+            shapes.filledCircle(cx, cy, innerRadius);
         } else {
-            if (a < .1f) {
+            if (a > .9f) {
                 shapes.setColor(Color.WHITE);
-                shapes.filledCircle(cx, cy, Nuke.blastRadiusOuter);
-                shapes.filledCircle(cx, cy, Nuke.blastRadiusInner);
+                shapes.filledCircle(cx, cy, outerRadius);
+                shapes.filledCircle(cx, cy, innerRadius);
             } else {
-                shapes.setColor(Color.ORANGE);
-                shapes.filledCircle(cx, cy, Nuke.blastRadiusOuter);
-                shapes.setColor(Color.YELLOW);
-                shapes.filledCircle(cx, cy, Nuke.blastRadiusInner);
+                shapes.setColor(1, .5f, .5f, .75f + a * .25f);
+                shapes.filledCircle(cx, cy, outerRadius);
+                shapes.setColor(1, 1, 0, .75f + a * .25f);
+                shapes.filledCircle(cx, cy, innerRadius);
             }
         }
     }
