@@ -8,13 +8,11 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
-import io.piotrjastrzebski.gdxjam.nta.utils.Events;
 import lombok.extern.slf4j.Slf4j;
 import space.earlygrey.shapedrawer.ShapeDrawer;
 
@@ -53,6 +51,9 @@ public class NukeGame extends Game {
 	public ShapeDrawer shapes;
 	public Preferences prefs;
 
+	// https://github.com/czyzby/gdx-skins/tree/master/biological-attack
+	public Skin skin;
+
 	@Override
 	public void create () {
 		log.info("Created");
@@ -71,6 +72,10 @@ public class NukeGame extends Game {
 		prefs = Gdx.app.getPreferences("prefs.nta");
 
 		VisUI.load();
+		// cba to do asset manager
+		skin = new Skin(Gdx.files.internal("skin/biological-attack-ui.json"));
+		skin.getFont("font").getData().markupEnabled = true;
+		skin.getFont("title").getData().markupEnabled = true;
 		setScreen(new GameScreen(this));
 	}
 
@@ -94,5 +99,6 @@ public class NukeGame extends Game {
 		batch.dispose();
 		white.getTexture().dispose();
 		VisUI.dispose();
+		skin.dispose();
 	}
 }
