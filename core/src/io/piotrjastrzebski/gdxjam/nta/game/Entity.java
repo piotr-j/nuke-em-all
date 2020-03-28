@@ -16,6 +16,9 @@ public abstract class Entity extends Group implements Comparable<Entity> {
 
     protected Player owner;
 
+    protected float health = 1;
+    protected float healthCap = 2;
+
     public Entity (NukeGame game, int id, int sort) {
         super();
         this.game = game;
@@ -39,6 +42,14 @@ public abstract class Entity extends Group implements Comparable<Entity> {
 
     public float cy () {
         return getY(Align.center);
+    }
+
+    public float health () {
+        return health;
+    }
+
+    public float healthCap () {
+        return healthCap;
     }
 
     @Override

@@ -22,6 +22,7 @@ public class Silo extends Entity {
     protected float reloadDuration = 2;
     protected float reloadTimer = 0;
     protected TargetCircle targetCircle;
+    protected HealthBar healthBar;
 
     public Silo (GameScreen gs, int id) {
         super(gs.game(), id, 20);
@@ -29,6 +30,10 @@ public class Silo extends Entity {
         // do we make these smaller?
         setBounds(0, 0, .76f, .76f);
         setTouchable(Touchable.enabled);
+        health = healthCap = 3;
+        healthBar = new HealthBar(gs.game(), this);
+        healthBar.setPosition(getWidth() * .5f, -.15f, Align.center);
+        addActor(healthBar);
     }
 
     @Override
@@ -105,12 +110,12 @@ public class Silo extends Entity {
         shapes.setColor(Color.GRAY);
         shapes.filledCircle(cx, cy, .2f);
 
-        { // reload timer
-            float a = 1 - reloadTimer/ reloadDuration;
-            shapes.setColor(Color.BLACK);
-            shapes.filledRectangle(cx - .5f, cy - .6f, 1f, .24f);
-            shapes.setColor(Color.GREEN);
-            shapes.filledRectangle(cx - .44f, cy - .55f, .9f * a, .12f);
-        }
+//        { // reload timer
+////            float a = 1 - reloadTimer/ reloadDuration;
+////            shapes.setColor(Color.BLACK);
+////            shapes.filledRectangle(cx - .5f, cy - .6f, 1f, .24f);
+////            shapes.setColor(Color.GREEN);
+////            shapes.filledRectangle(cx - .44f, cy - .55f, .9f * a, .12f);
+////        }
     }
 }
