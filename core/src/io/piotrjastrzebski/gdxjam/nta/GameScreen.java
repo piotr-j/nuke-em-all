@@ -96,12 +96,6 @@ public class GameScreen extends BaseScreen implements Telegraph {
         }
 
         seed = System.currentTimeMillis();
-        seed = 1248712498L;
-        // lets hope its stable enough between machines :D
-        RNGUtils.init(seed);
-
-        // eventually we want something more sensible, rng maybe?
-        // via seed?
         for (ContinentData cd : Continents.continents()) {
             Continent continent = new Continent(game, ++IDS);
             continent.init(cd);
@@ -109,36 +103,6 @@ public class GameScreen extends BaseScreen implements Telegraph {
             gameStage.addActor(continent);
             entities.add(continent);
             continents.add(continent);
-
-            Rectangle bounds = continent.rectBounds();
-            // city count roughly based on area
-            int cityCount = Math.min(2 + Math.round(bounds.area()/20), maxCities);
-            Array<City> cities = new Array<>();
-            for (int i = 0; i < cityCount; i++) {
-                City city = new City(game, ++IDS);
-                continent.addActor(city);
-
-                for (int j = 0; j < 1000; j++) {
-                    city.setPosition(
-                        RNGUtils.random(0, bounds.width - city.getWidth()),
-                        RNGUtils.random(0, bounds.height - city.getHeight())
-                    );
-                    boolean tooClose = false;
-                    for (City other : cities) {
-                        float dst = Vector2.dst(other.getX(center), other.getY(center), city.getX(center), city.getY(center));
-                        if (dst < other.getWidth() * 2) {
-                            tooClose = true;
-                        }
-                    }
-
-                    if (!tooClose && continent.contains(city.getX(center), city.getY())) {
-                        break;
-                    }
-                }
-                city.updateBounds();
-                cities.add(city);
-            }
-            this.cities.addAll(cities);
         }
     }
 
@@ -196,18 +160,18 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
     private void startLocalVsBot () {
         p1 = new Player(1, "player", true, players, Color.GREEN);
-        p2 = new Player(2, "enemy", false, players, Color.LIGHT_GRAY);
+        p2 = new Player(2, "enemy", false, players, Color.RED);
         p2.bot();
-        spawnPlayers();
+        spawnPlayers(System.currentTimeMillis());
     }
 
     private void startLocalVsLocal () {
         p1 = new Player(1, "player", true, players, Color.GREEN);
         p2 = new Player(2, "enemy", true, players, Color.RED);
-        spawnPlayers();
+        spawnPlayers(System.currentTimeMillis());
     }
 
-    private void startLocalVsRemove (String host, String other) {
+    private void startLocalVsRemove (String host, String other, long seed) {
         if (online.playerId().equals(host)) {
             p1 = new Player(1, host, true, players, Color.GREEN);
             p2 = new Player(2, other, false, players, Color.RED);
@@ -215,10 +179,44 @@ public class GameScreen extends BaseScreen implements Telegraph {
             p1 = new Player(1, host, false, players, Color.RED);
             p2 = new Player(2, other, true, players, Color.GREEN);
         }
-        spawnPlayers();
+        spawnPlayers(seed);
     }
 
-    private void spawnPlayers () {
+    private void spawnPlayers (long seed) {
+        // lets hope its stable enough between machines :D
+        RNGUtils.init(seed);
+        for (Continent continent : continents) {
+            Rectangle bounds = continent.rectBounds();
+            // city count roughly based on area
+            int cityCount = Math.min(2 + Math.round(bounds.area()/20), maxCities);
+            Array<City> cities = new Array<>();
+            for (int i = 0; i < cityCount; i++) {
+                City city = new City(game, ++IDS);
+                continent.addActor(city);
+
+                for (int j = 0; j < 1000; j++) {
+                    city.setPosition(
+                        RNGUtils.random(0, bounds.width - city.getWidth()),
+                        RNGUtils.random(0, bounds.height - city.getHeight())
+                    );
+                    boolean tooClose = false;
+                    for (City other : cities) {
+                        float dst = Vector2.dst(other.getX(center), other.getY(center), city.getX(center), city.getY(center));
+                        if (dst < other.getWidth() * 2) {
+                            tooClose = true;
+                        }
+                    }
+
+                    if (!tooClose && continent.contains(city.getX(center), city.getY())) {
+                        break;
+                    }
+                }
+                city.updateBounds();
+                cities.add(city);
+            }
+            this.cities.addAll(cities);
+        }
+
         Silo.IDS = 0;
         game.sounds.begin.play();
         // random initial positions
@@ -386,7 +384,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
         Table buttons = new Table();
         content.add(buttons).grow();
         {
-            Button button = new ImageTextButton("RESTART", skin);
+            Button button = new ImageTextButton("RESTART", skin, "radiation");
             button.addListener(new ChangeListener() {
                 @Override
                 public void changed (ChangeEvent event, Actor actor) {
@@ -472,7 +470,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
         Table buttons = new Table();
         content.add(buttons).growX().row();
         Table table = new Table();
-        content.add(table).grow();
+        content.add(table).grow().row();
 
 
         table.add(new Label("Press HOST or JOIN to start!", skin));
@@ -503,6 +501,17 @@ public class GameScreen extends BaseScreen implements Telegraph {
             });
             buttons.add(button).expandX().uniformX().right().row();
             group.add(button);
+        }
+        {
+            Button button = new ImageTextButton("Cancel", skin, "warning");
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    createStartUI();
+                }
+            });
+            buttons.add(button).expandX().uniformX().right().row();
+            content.add(button);
         }
         dialog.show(uiStage);
     }
@@ -555,7 +564,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
         hostsTable.add(new Label("Loading...", skin));
         ScrollPane pane = new ScrollPane(hostsTable, skin);
         pane.setScrollingDisabled(true, false);
-        container.add(pane).growX().height(300);
+        container.add(pane).growX().height(250);
 
         online.hosts(hosts -> {
             hostsTable.clear();
@@ -586,10 +595,10 @@ public class GameScreen extends BaseScreen implements Telegraph {
     private Online.GameListener gameListener () {
         return new Online.GameListener() {
             @Override
-            public void start (String host, String other) {
+            public void start (String host, String other, long seed) {
                 log.info("Start {}, {}", host, other);
                 uiStage.clear();
-                startLocalVsRemove(host, other);
+                startLocalVsRemove(host, other, seed);
             }
 
             @Override

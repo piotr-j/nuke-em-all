@@ -424,7 +424,7 @@ public class Online {
 //                }
 //            }
 
-            log.info("game event {} -> '{}', \n{}", type, path, data);
+            log.debug("game event {} -> '{}', \n{}", type, path, data);
             switch (type) {
             case "put": {
                 if (path.equals("/")) {
@@ -455,15 +455,17 @@ public class Online {
             case "join": {
                 if (p1 == null) {
                     p1 = player;
+                    p1join = ts;
                     log.info("{} joined as p1", player);
                 } else if (p2 == null) {
                     p2 = player;
+                    p2join = ts;
                     log.info("{} joined as p2", player);
                 } else {
                     log.warn("{} joined but slots are filed", player);
                 }
                 if (p1 != null && p2 != null) {
-                    listener.start(p1, p2);
+                    listener.start(p1, p2, p1join);
                 }
             } break;
             case "nuke": {
@@ -543,7 +545,7 @@ public class Online {
     }
 
     public interface GameListener {
-        void start (String host, String other);
+        void start (String host, String other, long seed);
 
         void nuke (String player, int silo, float x, float y);
 

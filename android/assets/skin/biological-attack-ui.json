@@ -252,10 +252,10 @@ com.badlogic.gdx.scenes.scene2d.ui.ImageTextButton$ImageTextButtonStyle: {
 		overFontColor: over
 	}
 	toggle: {
-		imageUp: icon-biohazard-c
-		imageDown: icon-biohazard-d
-		imageOver: icon-biohazard-o
-		imageChecked: icon-biohazard-d
+		imageUp: icon-radiation-c
+		imageDown: icon-radiation-d
+		imageOver: icon-radiation-o
+		imageChecked: icon-radiation-d
 		font: font
 		fontColor: color
 		downFontColor: down
