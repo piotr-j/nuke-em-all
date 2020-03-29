@@ -55,8 +55,10 @@ public class NukeGame extends Game {
 	public Skin skin;
 
 	public Sounds sounds;
+	// firebase realtime db we will connect to for online play
+	public final String db = "https://nukethemall-d8ac7.firebaseio.com/";
 
-	@Override
+    @Override
 	public void create () {
 		log.info("Created");
 		batch = new PolygonSpriteBatch();
@@ -100,6 +102,8 @@ public class NukeGame extends Game {
 	
 	@Override
 	public void dispose () {
+    	if (screen != null) screen.hide();
+    	if (screen != null) screen.dispose();
 		batch.dispose();
 		white.getTexture().dispose();
 		VisUI.dispose();

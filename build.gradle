@@ -33,6 +33,7 @@ allprojects {
         lombok = '1.18.12'
 
         shapedrawer = '2.2.0'
+        okHttp = '3.12.1'
 
     }
 
@@ -152,5 +153,7 @@ project(":core") {
         annotationProcessor "org.projectlombok:lombok:$lombok"
 
         implementation "space.earlygrey:shapedrawer:$shapedrawer"
+
+        api "com.squareup.okhttp3:okhttp:$okHttp"
     }
 }

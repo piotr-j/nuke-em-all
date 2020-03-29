@@ -19,7 +19,7 @@ import com.badlogic.gdx.utils.Scaling;
 import io.piotrjastrzebski.gdxjam.nta.game.*;
 import io.piotrjastrzebski.gdxjam.nta.utils.Continents;
 import io.piotrjastrzebski.gdxjam.nta.utils.Continents.ContinentData;
-import io.piotrjastrzebski.gdxjam.nta.utils.FireBaseFunctions;
+import io.piotrjastrzebski.gdxjam.nta.utils.Online;
 import io.piotrjastrzebski.gdxjam.nta.utils.RNGUtils;
 import io.piotrjastrzebski.gdxjam.nta.utils.events.Events;
 import io.piotrjastrzebski.gdxjam.nta.utils.events.ExplodeEvent;
@@ -28,7 +28,6 @@ import io.piotrjastrzebski.gdxjam.nta.utils.events.PlayerLostCity;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
-import java.util.Random;
 
 import static com.badlogic.gdx.utils.Align.center;
 
@@ -56,12 +55,12 @@ public class GameScreen extends BaseScreen implements Telegraph {
     // raw map from wiki https://en.wikipedia.org/wiki/World_map#/media/File:Winkel_triple_projection_SW.jpg
     Texture worldMap;
 
+    Online online;
+
     public GameScreen (NukeGame game) {
         super(game);
         gameStage = new Stage(game.gameViewport, game.batch);
-
-        restart();
-        createStartUI();
+        online = new Online(game.db);
     }
 
     private void restart () {
@@ -181,7 +180,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
                 @Override
                 public void changed (ChangeEvent event, Actor actor) {
                     dialog.hide();
-                    startLocalVsRemove();
+                    showOnlineDialog();
                 }
             });
             buttons.add(button).expandX().left().row();
@@ -417,6 +416,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
     @Override
     public void dispose () {
         super.dispose();
+        online.dispose();
         gameStage.dispose();
         if (worldMap != null) worldMap.dispose();
     }
@@ -440,5 +440,131 @@ public class GameScreen extends BaseScreen implements Telegraph {
         } break;
         }
         return false;
+    }
+
+    private void showOnlineDialog () {
+        Skin skin = game.skin;
+        Dialog dialog = new Dialog("NUKE THEM ALL", skin);
+        dialog.getTitleTable().pad(16);
+        dialog.setModal(true);
+        dialog.setMovable(false);
+
+        Table content = dialog.getContentTable().pad(16);
+        content.add(new Label("Lets try this online stuff!", skin)).left().row();
+        content.add(new Label("You can host or join hosted game", skin)).left().row();
+        content.add(new Label("(Start two clients to test)", skin)).left().row();
+
+        Table buttons = new Table();
+        content.add(buttons).growX().row();
+        Table table = new Table();
+        content.add(table).grow();
+
+
+        table.add(new Label("Press HOST or JOIN to start!", skin));
+
+        ButtonGroup<Button> group = new ButtonGroup<>();
+        group.setMinCheckCount(0);
+        group.setMaxCheckCount(1);
+        {
+            Button button = new ImageTextButton("HOST", skin, "toggle");
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    host(dialog, table, button.isChecked());
+                    pack(dialog);
+                }
+            });
+            buttons.add(button).expandX().uniformX().left();
+            group.add(button);
+        }
+        {
+            Button button = new ImageTextButton("JOIN", skin, "toggle");
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    join(dialog, table, button.isChecked());
+                    pack(dialog);
+                }
+            });
+            buttons.add(button).expandX().uniformX().right().row();
+            group.add(button);
+        }
+        dialog.show(uiStage);
+    }
+
+    private void pack (Dialog dialog) {
+        dialog.pack();
+        dialog.setPosition(Math.round((uiStage.getWidth() - dialog.getWidth()) / 2), Math.round((uiStage.getHeight() -  dialog.getHeight()) / 2));
+    }
+
+    void host (Dialog dialog, Table container, boolean enabled) {
+        if (!enabled) {
+            log.info("Cancel hosting");
+            online.cancelHost();
+            container.clear();
+            return;
+        }
+        log.info("Start hosting");
+        container.clear();
+        String host = online.host();
+        Skin skin = game.skin;
+        container.add(new Label("You are now hosting with id:", skin)).row();
+        container.add(new Label(host, skin)).row();;
+        container.add(new Label("When other player joins the game will start!", skin)).row();
+    }
+
+    void join (Dialog dialog, Table container, boolean enabled) {
+        if (!enabled) {
+            log.info("Cancel joining");
+            container.clear();
+            return;
+        }
+        log.info("Start joining");
+        container.clear();
+        Skin skin = game.skin;
+        container.add(new Label("Pick a host and join a game!", skin)).row();
+        {
+            Button button = new ImageTextButton("Refresh", skin, "poison");
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    join(dialog, container, true);
+                }
+            });
+            container.add(button).row();
+        }
+        Table hostsTable = new Table();
+        hostsTable.top().left();
+        hostsTable.add(new Label("Loading...", skin));
+        ScrollPane pane = new ScrollPane(hostsTable, skin);
+        pane.setScrollingDisabled(true, false);
+        container.add(pane).growX().height(300);
+
+        online.hosts(hosts -> {
+            hostsTable.clear();
+            if (hosts.size == 0) {
+                hostsTable.add(new Label("No hosts :(", skin));
+                return;
+            }
+
+            for (Online.Host host : hosts) {
+                hostsTable.add(new Label(host.id, skin)).padRight(8);
+                Button button = new ImageTextButton("JOIN", skin, "fire");
+                button.addListener(new ChangeListener() {
+                    @Override
+                    public void changed (ChangeEvent event, Actor actor) {
+                        joinGame(dialog, host);
+                    }
+                });
+                hostsTable.add(button).padBottom(8).row();
+            }
+        });
+    }
+
+    private void joinGame (Dialog dialog, Online.Host host) {
+        log.warn("Joining host {}", host);
+
+        // if success!
+        //dialog.hide();
     }
 }
