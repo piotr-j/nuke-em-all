@@ -20,6 +20,7 @@ import space.earlygrey.shapedrawer.ShapeDrawer;
  */
 @Slf4j
 public class Silo extends Entity {
+    public static int IDS = 0;
     protected Vector2 target = new Vector2();
     protected boolean targeting;
     protected float reloadDuration = 5;
@@ -27,8 +28,8 @@ public class Silo extends Entity {
     protected TargetCircle targetCircle;
     protected Cooldown cooldown;
 
-    public Silo (NukeGame game, int id) {
-        super(game, id, 20);
+    public Silo (NukeGame game) {
+        super(game, ++IDS, 20);
         // do we make these smaller?
         setBounds(0, 0, .76f, .76f);
         setTouchable(Touchable.enabled);

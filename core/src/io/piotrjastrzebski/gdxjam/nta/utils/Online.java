@@ -22,7 +22,7 @@ public class Online {
     protected final Json json;
     protected final OkHttpClient client;
     protected final OkHttpClient streamClient;
-    protected final String hostId;
+    protected final String playerId;
     protected boolean isHosting;
 
     public Online (String basePath) {
@@ -40,9 +40,10 @@ public class Online {
         streamClient = builder.build();
 
         // probably no need for this to change?
-        hostId = Long.toHexString(new Random().nextLong()).substring(0, 5);
+        playerId = Long.toHexString(new Random().nextLong()).substring(0, 5);
+
         if (true) return;
-        String content = "{\"" + hostId + "\": " + System.currentTimeMillis() + "}";
+        String content = "{\"" + playerId + "\": " + System.currentTimeMillis() + "}";
         log.warn("content = {}", content);
 
         update("hosts.json", content, new OnResponse() {
@@ -70,14 +71,15 @@ public class Online {
         });
     }
 
-    public String host () {
+    public void host (GameListener gameListener) {
         // in case we cancel before a reply
         isHosting = true;
-        String content = "{\"" + hostId + "\": " + System.currentTimeMillis() + "}";
+        String content = "{\"" + playerId + "\": " + System.currentTimeMillis() + "}";
         update("hosts.json", content, new OnResponse() {
             @Override
             public void success (String data) {
                 log.debug("Hosting! {}", data);
+                join(playerId, gameListener);
                 // TODO stream our game location
             }
 
@@ -87,47 +89,37 @@ public class Online {
                 log.warn("Failed to host!");
             }
         });
-        return hostId;
+    }
+
+    public String playerId (){
+        return playerId;
     }
 
     public void cancelHost () {
         if (!isHosting) return;
         isHosting = false;
-        delete("hosts/" + hostId + ".json", new OnResponse() {
-            @Override
-            public void success (String data) {
-                log.debug("Stopped hosting! {}", data);
-            }
-
-            @Override
-            public void failed () {
-                log.warn("Failed to stop hosting!");
-            }
-        });
+        delete("hosts/" + playerId + ".json", null);
+        delete("games/" + playerId + ".json", null);
     }
 
+    Call hostsCall;
     public void hosts (HostsListener listener) {
 //        put -> {"path":"/","data":{"9fc4c":1585487219173,"ebd59":1585488180508}}
 //        patch -> {"path":"/","data":{"d1bd5":1585488312798}}
 //        put -> {"path":"/d1bd5","data":null}
 
-        stream("hosts.json", new OnStream() {
-            Array<Host> hosts = new Array<>();
-            ObjectMap<String, Host> hostCache = new ObjectMap<>();
-            JsonReader reader = new JsonReader();
+        hostsCall = stream("hosts.json", new OnStream() {
+            Array<Player> hosts = new Array<>();
+            ObjectMap<String, Player> hostCache = new ObjectMap<>();
             @Override
-            public void event (String type, String rawData) {
-                log.info("Hosts event {} -> {}", type, rawData);
-                JsonValue jsonData = reader.parse(rawData);
-                String path = jsonData.get("path").asString();
-                JsonValue value = jsonData.get("data");
-
+            public void event (String type, String path, JsonValue data) {
+                log.debug("Hosts event {} -> {} \n{}", type, path, data);
                 switch (type) {
                 case "put": {
                     if (path.equals("/")) {
                         // initial data
-                        for (JsonValue hv : value) {
-                            Host host = new Host(hv.name, hv.asLong());
+                        for (JsonValue hv : data) {
+                            Player host = new Player(hv.name, hv.asLong());
                             // skip if old (ie we didnt remove it for some reason)
                             if (TimeUtils.timeSinceMillis(host.timestamp) > TimeUnit.MINUTES.toMillis(2)) {
                                 continue;
@@ -145,15 +137,15 @@ public class Online {
                 case "patch": {
                     if (path.equals("/")) {
                         // something was added
-                        for (JsonValue hv : value) {
-                            Host host = new Host(hv.name, hv.asLong());
+                        for (JsonValue hv : data) {
+                            Player host = new Player(hv.name, hv.asLong());
                             hostCache.put(host.id, host);
                         }
                     }
                 } break;
                 }
                 hosts.clear();
-                for (Host host : hostCache.values()) {
+                for (Player host : hostCache.values()) {
                     hosts.add(host);
                 }
                 //noinspection ComparatorCombinators
@@ -168,15 +160,17 @@ public class Online {
                 listener.onResult(new Array<>());
             }
         });
+
+
         if (true) return;
         get("hosts.json", new OnResponse() {
             @Override
             public void success (String data) {
-                Array<Host> hosts = new Array<>();
+                Array<Player> hosts = new Array<>();
                 if (data != null) {
                     JsonReader reader = new JsonReader();
                     for (JsonValue value : reader.parse(data)) {
-                        Host host = new Host(value.name, value.asLong());
+                        Player host = new Player(value.name, value.asLong());
                         log.warn("{}", host);
                         hosts.add(host);
                     }
@@ -195,7 +189,10 @@ public class Online {
     }
 
     public void cancelHosts () {
-        cancelStream();
+        if (hostsCall != null) {
+            hostsCall.cancel();
+            hostsCall = null;
+        }
     }
 
     public void dispose () {
@@ -249,23 +246,22 @@ public class Online {
                     ResponseBody body = response.body();
                     final String result = body != null? body.string() : null;
                     log.debug("result {}", result);
-                    Gdx.app.postRunnable(() -> onResponse.success(result));
+                    if (onResponse != null) Gdx.app.postRunnable(() -> onResponse.success(result));
                 } else {
                     log.warn("Call to '{}' failed with status {}", request.url(), status);
-                    Gdx.app.postRunnable(onResponse::failed);
+                    if (onResponse != null) Gdx.app.postRunnable(onResponse::failed);
                 }
             }
 
             @Override
             public void onFailure (Call call, IOException e) {
                 log.error("Call to '{}' failed with exception", request.url(), e);
-                Gdx.app.postRunnable(onResponse::failed);
+                if (onResponse != null) Gdx.app.postRunnable(onResponse::failed);
             }
         });
     }
 
-    Call streamCall = null;
-    private void stream(String path, OnStream listener) {
+    private Call stream(String path, OnStream listener) {
         String url = basePath + path;
         Request.Builder rb = new Request.Builder().url(url);
         // no method needed i guess
@@ -275,24 +271,22 @@ public class Online {
         Request request = rb.build();
 
         log.debug("{} -> {}", request.method(), request.url());
-        if (streamCall != null) {
-            streamCall.cancel();
-        }
-        streamCall = streamClient.newCall(request);
-        streamCall.enqueue(new Callback() {
+        Call call = streamClient.newCall(request);
+        call.enqueue(new Callback() {
             @Override
             public void onResponse (Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    log.info("call failed");
+                    log.warn("call failed");
                     Gdx.app.postRunnable(listener::failed);
                     return;
                 }
-                log.info("Streaming {}", path);
+                log.debug("Streaming {}", path);
                 ResponseBody body = response.body();
                 if (body == null) return;
 
                 BufferedSource source = body.source();
 
+                JsonReader reader = new JsonReader();
                 while (!call.isCanceled()) {
                     // we get data in format, lets assume for now that it is always 3 lines
                     // event: method
@@ -326,9 +320,16 @@ public class Online {
                         String event = el.substring("event: ".length());
                         String data = dl.substring("data: ".length());
                         log.debug("{} -> {}", event, data);
-                        Gdx.app.postRunnable(() -> listener.event(event, data));
+                        // keep alive probably
+                        if ("null".equals(data)) {
+                            continue;
+                        }
+                        JsonValue parse = reader.parse(data);
+                        String path = parse.get("path").asString();
+                        JsonValue value = parse.get("data");
+                        Gdx.app.postRunnable(() -> listener.event(event, path, value));
                     } catch (IOException ex) {
-                        log.info("timeout!");
+                        log.error("welp", ex);
                         break;
                     }
                 }
@@ -341,25 +342,194 @@ public class Online {
                 Gdx.app.postRunnable(listener::failed);
             }
         });
+        return call;
     }
 
-    private void cancelStream () {
-        if (streamCall != null) {
-            streamCall.cancel();
+    Call gameCall;
+    String gameHostId;
+    GameState state;
+    public void join (String hostId, GameListener listener) {
+        // could use ETag stuff to verify we dont join same thing twice or whatever
+        if (gameCall != null) {
+            gameCall.cancel();
+        }
+
+        state = new GameState(listener);
+        String path = "games/" + hostId + ".json";
+        String joinContent = "{" +
+            "\"player\":" + "\"" + playerId + "\"," +
+            "\"action\":" + "\"join\"," +
+            "\"ts\":" + System.currentTimeMillis() +
+            "}";
+        add(path, joinContent, new OnResponse() {
+            @Override
+            public void success (String data) {
+                gameHostId = hostId;
+                log.debug("Joined! {}", data);
+                gameCall = stream(path, state);
+            }
+
+            @Override
+            public void failed () {
+                log.warn("join failed");
+            }
+        });
+    }
+
+    static class GameState implements OnStream {
+        private GameListener listener;
+        private long startTime;
+        String p1;
+        long p1join;
+        String p2;
+        long p2join;
+
+        public GameState (GameListener listener) {
+            this.listener = listener;
+            startTime = System.currentTimeMillis();
+        }
+
+        @Override
+        public void event (String type, String path, JsonValue data) {
+            // ignore events before start time just in case
+            // when we host we get
+            // game event put -> '/'
+//            data: {
+//                -M3b-PdJg-17b0l3BTit: {
+//                    action: join
+//                    player: c1d31
+//                    ts: 1585497351875
+//                }
+//            }
+
+//            game event put -> '/-M3b-QZjYt_qLNpUfC2d',
+//                data: {
+//                action: join
+//                player: 5240d
+//                ts: 1585497355234
+//            }
+
+            // when we join we get
+//            put -> '/',
+//                data: {
+//                -M3b-PdJg-17b0l3BTit: {
+//                    action: join
+//                    player: c1d31
+//                    ts: 1585497351875
+//                }
+//                -M3b-QZjYt_qLNpUfC2d: {
+//                    action: join
+//                    player: 5240d
+//                    ts: 1585497355234
+//                }
+//            }
+
+            log.info("game event {} -> '{}', \n{}", type, path, data);
+            switch (type) {
+            case "put": {
+                if (path.equals("/")) {
+                    if (data.isNull()) {
+                        // game removed
+                        listener.end();
+                    } else {
+                        // new game
+                        for (JsonValue value : data) {
+                            process(value);
+                        }
+                    }
+                } else {
+                    // new event /id
+                    process(data);
+                }
+            } break;
+            }
+        }
+
+        private void process (JsonValue value) {
+            String player = value.getString("player");
+            String action = value.getString("action");
+            // could use ts to correct for lag a bit
+            long ts = value.getLong("ts");
+
+            switch (action) {
+            case "join": {
+                if (p1 == null) {
+                    p1 = player;
+                    log.info("{} joined as p1", player);
+                } else if (p2 == null) {
+                    p2 = player;
+                    log.info("{} joined as p2", player);
+                } else {
+                    log.warn("{} joined but slots are filed", player);
+                }
+                if (p1 != null && p2 != null) {
+                    listener.start(p1, p2);
+                }
+            } break;
+            case "nuke": {
+                int siloId = value.getInt("silo");
+                float tx = value.getFloat("x");
+                float ty = value.getFloat("y");
+                log.info("{}s silo#{} nukes {}, {}", player, siloId, tx, ty);
+                listener.nuke(player, siloId, tx, ty);
+            } break;
+            case "leave": {
+                log.info("{} left ", player);
+                listener.end();
+            } break;
+            }
+        }
+
+        @Override
+        public void failed () {
+
         }
     }
 
-    public void join (Host host, JoinListener listener) {
-        // could use ETag stuff to verify we dont join same thing twice or whatever
+    public void launchNuke (int siloId, float x, float y) {
+        if (gameHostId == null) return;
+        String path = "games/" + gameHostId + ".json";
+        String launchContent = "{" +
+            "\"player\":" + "\"" + playerId + "\"," +
+            "\"action\":" + "\"nuke\"," +
+            "\"ts\":" + System.currentTimeMillis() + "," +
+            "\"silo\":" + siloId + "," +
+            "\"x\":" + x + "," +
+            "\"y\":" + y +
+            "}";
+        add(path, launchContent, null);
+    }
+
+    public void leave () {
+        if (gameHostId == null) {
+            return;
+        }
+        if (gameCall != null) {
+            gameCall.cancel();
+        }
+        String path = "games/" + gameHostId + ".json";
+        String leaveContent = "{" +
+            "\"player\":" + "\"" + playerId + "\"," +
+            "\"action\":" + "\"leave\"," +
+            "\"ts\":" + System.currentTimeMillis() +
+            "}";
+        add(path, leaveContent, new OnResponse() {
+            @Override
+            public void success (String data) {
+                log.debug("Left! {}", data);
+            }
+
+            @Override
+            public void failed () {
+                isHosting = false;
+                log.warn("Failed to leave!");
+            }
+        });
+        gameHostId = null;
     }
 
     public interface HostsListener {
-        void onResult (Array<Host> hosts);
-    }
-
-    public interface JoinListener {
-        void joined ();
-        void failed ();
+        void onResult (Array<Player> hosts);
     }
 
     private interface OnResponse {
@@ -368,13 +538,23 @@ public class Online {
     }
 
     private interface OnStream {
-        void event (String type, String data);
+        void event (String type, String path, JsonValue data);
         void failed ();
+    }
+
+    public interface GameListener {
+        void start (String host, String other);
+
+        void nuke (String player, int silo, float x, float y);
+
+        void end ();
+
+        void fail ();
     }
 
     @AllArgsConstructor
     @ToString
-    public static class Host {
+    public static class Player {
         public String id;
         public long timestamp;
     }

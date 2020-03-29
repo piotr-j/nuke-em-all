@@ -60,7 +60,6 @@ public class NukeGame extends Game {
 
     @Override
 	public void create () {
-		log.info("Created");
 		batch = new PolygonSpriteBatch();
 		{
 			Pixmap pixmap = new Pixmap(3, 3, Pixmap.Format.RGBA8888);

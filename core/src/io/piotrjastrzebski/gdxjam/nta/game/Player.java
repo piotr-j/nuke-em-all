@@ -11,13 +11,6 @@ import io.piotrjastrzebski.gdxjam.nta.utils.events.PlayerLostCity;
  * Player in a game
  */
 public class Player {
-    static Color[] tints = new Color[] {
-        Color.WHITE, // neutral
-        Color.GREEN, // p1
-        Color.RED, // p2
-        // more?
-    };
-
     public final int id;
     public final String name;
     public final boolean playerControlled;
@@ -34,12 +27,12 @@ public class Player {
 
     Array<Player> players;
 
-    public Player (int id, String name, boolean local, Array<Player> players) {
+    public Player (int id, String name, boolean local, Array<Player> players, Color tint) {
         this.id = id;
         this.name = name;
         this.playerControlled = local;
         this.players = players;
-        this.tint.set(tints[id % tints.length]);
+        this.tint.set(tint);
         players.add(this);
     }
 
@@ -128,5 +121,12 @@ public class Player {
 
     public boolean hasCities () {
         return cities.size > 0;
+    }
+
+    public Silo silo (int siloId) {
+        for (Silo silo : silos) {
+            if (silo.id == siloId) return silo;
+        }
+        return null;
     }
 }

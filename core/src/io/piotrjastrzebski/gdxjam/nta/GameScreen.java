@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ai.msg.Telegram;
 import com.badlogic.gdx.ai.msg.Telegraph;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Rectangle;
@@ -49,8 +50,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
     Array<Player> players;
     Player neutral;
-    Player local;
-    Player remote;
+    Player p1;
+    Player p2;
 
     // raw map from wiki https://en.wikipedia.org/wiki/World_map#/media/File:Winkel_triple_projection_SW.jpg
     Texture worldMap;
@@ -77,9 +78,14 @@ public class GameScreen extends BaseScreen implements Telegraph {
         nukes = new Array<>();
 
         players = new Array<>();
-        neutral = new Player(0, "neutral", false, players);
-        local = null;
-        remote = null;
+        neutral = new Player(0, "neutral", false, players, Color.LIGHT_GRAY);
+        p1 = null;
+        p2 = null;
+
+        // make sure all is good :v
+        online.leave();
+        online.cancelHost();
+        online.cancelHosts();
 
         if (false) {
             worldMap = new Texture("world_map.jpg");
@@ -189,25 +195,31 @@ public class GameScreen extends BaseScreen implements Telegraph {
     }
 
     private void startLocalVsBot () {
-        local = new Player(1, "player", true, players);
-        remote = new Player(2, "enemy", false, players);
-        remote.bot();
+        p1 = new Player(1, "player", true, players, Color.GREEN);
+        p2 = new Player(2, "enemy", false, players, Color.LIGHT_GRAY);
+        p2.bot();
         spawnPlayers();
     }
 
     private void startLocalVsLocal () {
-        local = new Player(1, "player", true, players);
-        remote = new Player(2, "enemy", true, players);
+        p1 = new Player(1, "player", true, players, Color.GREEN);
+        p2 = new Player(2, "enemy", true, players, Color.RED);
         spawnPlayers();
     }
 
-    private void startLocalVsRemove () {
-        local = new Player(1, "player", true, players);
-        remote = new Player(2, "enemy", false, players);
+    private void startLocalVsRemove (String host, String other) {
+        if (online.playerId().equals(host)) {
+            p1 = new Player(1, host, true, players, Color.GREEN);
+            p2 = new Player(2, other, false, players, Color.RED);
+        } else {
+            p1 = new Player(1, host, false, players, Color.RED);
+            p2 = new Player(2, other, true, players, Color.GREEN);
+        }
         spawnPlayers();
     }
 
     private void spawnPlayers () {
+        Silo.IDS = 0;
         game.sounds.begin.play();
         // random initial positions
         // more continents per player?
@@ -218,14 +230,14 @@ public class GameScreen extends BaseScreen implements Telegraph {
         while (true) {
             Continent continent = shuffled.pop();
             if (continent.cities().size == maxCities) {
-                overtakeContinent(continent, local);
+                overtakeContinent(continent, p1);
                 break;
             }
         }
         while (true) {
             Continent continent = shuffled.pop();
             if (continent.cities().size == maxCities) {
-                overtakeContinent(continent, remote);
+                overtakeContinent(continent, p2);
                 break;
             }
         }
@@ -238,7 +250,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
         Array<Silo> silos = new Array<>();
         Array<City> cities = continent.cities();
         for (int i = 0; i < cities.size; i++) {
-            Silo silo = new Silo(game, ++IDS);
+            Silo silo = new Silo(game);
             silo.owner(player);
             continent.addActor(silo);
 
@@ -283,6 +295,9 @@ public class GameScreen extends BaseScreen implements Telegraph {
         nukes.add(nuke);
         gameStage.addActor(nuke);
 
+        if (silo.owner().isPlayerControlled()) {
+            online.launchNuke(silo.id, tx, ty);
+        }
     }
 
     private void updateNukes () {
@@ -400,8 +415,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
     public void update (float delta) {
         gameStage.act(delta);
         updateNukes();
-        if (local != null) local.update(delta);
-        if (remote != null) remote.update(delta);
+        if (p1 != null) p1.update(delta);
+        if (p2 != null) p2.update(delta);
         gameStage.draw();
         uiStage.act(delta);
         uiStage.draw();
@@ -499,28 +514,28 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
     void host (Dialog dialog, Table container, boolean enabled) {
         if (!enabled) {
-            log.info("Cancel hosting");
+            log.debug("Cancel hosting");
             online.cancelHost();
             container.clear();
             return;
         }
-        log.info("Start hosting");
+        log.debug("Start hosting");
         container.clear();
-        String host = online.host();
+        online.host(gameListener());
         Skin skin = game.skin;
         container.add(new Label("You are now hosting with id:", skin)).row();
-        container.add(new Label(host, skin)).row();;
+        container.add(new Label(online.playerId(), skin)).row();;
         container.add(new Label("When other player joins the game will start!", skin)).row();
     }
 
     void join (Dialog dialog, Table container, boolean enabled) {
         if (!enabled) {
-            log.info("Cancel joining");
+            log.debug("Cancel joining");
             container.clear();
             online.cancelHosts();
             return;
         }
-        log.info("Start joining");
+        log.debug("Start joining");
         container.clear();
         Skin skin = game.skin;
         container.add(new Label("Pick a host and join a game!", skin)).row();
@@ -549,7 +564,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
                 return;
             }
 
-            for (Online.Host host : hosts) {
+            for (Online.Player host : hosts) {
                 hostsTable.add(new Label(host.id, skin)).padRight(8);
                 Button button = new ImageTextButton("JOIN", skin, "fire");
                 button.addListener(new ChangeListener() {
@@ -563,20 +578,52 @@ public class GameScreen extends BaseScreen implements Telegraph {
         });
     }
 
-    private void joinGame (Dialog dialog, Table container, Online.Host host) {
+    private void joinGame (Dialog dialog, Table container, Online.Player host) {
         log.debug("Joining host {}", host);
-        online.join(host, new Online.JoinListener() {
+        online.join(host.id, gameListener());
+    }
+
+    private Online.GameListener gameListener () {
+        return new Online.GameListener() {
             @Override
-            public void joined () {
-                dialog.hide();
-                // ??
+            public void start (String host, String other) {
+                log.info("Start {}, {}", host, other);
+                uiStage.clear();
+                startLocalVsRemove(host, other);
             }
 
             @Override
-            public void failed () {
-                log.warn("Failed to join host {}", host);
-                join(dialog, container, true);
+            public void nuke (String player, int siloId, float x, float y) {
+                log.info("Nuke {}, {},{}", player, x, y);
+                if (p1 != null && p1.name.equals(player) && !p1.isPlayerControlled()) {
+                    Silo silo = p1.silo(siloId);
+                    if (silo != null) {
+                        launchNuke(silo, x, y);
+                    } else {
+                        log.warn("{} silo#{} not found", player, siloId);
+                    }
+                } else if (p2 != null && p2.name.equals(player) && !p2.isPlayerControlled()) {
+                    Silo silo = p2.silo(siloId);
+                    if (silo != null) {
+                        launchNuke(silo, x, y);
+                    } else {
+                        log.warn("{} silo#{} not found", player, siloId);
+                    }
+                }
             }
-        });
+
+            @Override
+            public void end () {
+                // someone left the game
+                log.info("End");
+                restart();
+            }
+
+            @Override
+            public void fail () {
+                log.warn("Failed!");
+                restart();
+            }
+        };
     }
 }
