@@ -517,13 +517,15 @@ public class GameScreen extends BaseScreen implements Telegraph {
         if (!enabled) {
             log.info("Cancel joining");
             container.clear();
+            online.cancelHosts();
             return;
         }
         log.info("Start joining");
         container.clear();
         Skin skin = game.skin;
         container.add(new Label("Pick a host and join a game!", skin)).row();
-        {
+        container.add(new Label("(auto refresh)", skin)).row();
+        if (false) {
             Button button = new ImageTextButton("Refresh", skin, "poison");
             button.addListener(new ChangeListener() {
                 @Override
@@ -553,7 +555,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
                 button.addListener(new ChangeListener() {
                     @Override
                     public void changed (ChangeEvent event, Actor actor) {
-                        joinGame(dialog, host);
+                        joinGame(dialog, container, host);
                     }
                 });
                 hostsTable.add(button).padBottom(8).row();
@@ -561,10 +563,20 @@ public class GameScreen extends BaseScreen implements Telegraph {
         });
     }
 
-    private void joinGame (Dialog dialog, Online.Host host) {
-        log.warn("Joining host {}", host);
+    private void joinGame (Dialog dialog, Table container, Online.Host host) {
+        log.debug("Joining host {}", host);
+        online.join(host, new Online.JoinListener() {
+            @Override
+            public void joined () {
+                dialog.hide();
+                // ??
+            }
 
-        // if success!
-        //dialog.hide();
+            @Override
+            public void failed () {
+                log.warn("Failed to join host {}", host);
+                join(dialog, container, true);
+            }
+        });
     }
 }
