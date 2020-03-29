@@ -6,8 +6,6 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class LaunchNukeEvent extends Event{
     public Silo silo;
-    public float sx;
-    public float sy;
     public float tx;
     public float ty;
 

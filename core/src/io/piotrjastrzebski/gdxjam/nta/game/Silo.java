@@ -95,11 +95,8 @@ public class Silo extends Entity {
         game.sounds.launch.play();
         if (targetCircle != null) targetCircle.remove();
         log.debug("Silo#{} launching at {}, {}", id, x, y);
-        localToStageCoordinates(v2.set(getWidth()/2, getHeight()/2));
-        float sx = v2.x;
-        float sy = v2.y;
         reloadTimer = reloadDuration;
-        Events.send(new LaunchNukeEvent(this, sx, sy, x, y));
+        Events.send(new LaunchNukeEvent(this, x, y));
     }
 
     @Override

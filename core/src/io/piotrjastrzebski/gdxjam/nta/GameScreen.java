@@ -275,10 +275,11 @@ public class GameScreen extends BaseScreen implements Telegraph {
         this.silos.addAll(silos);
     }
 
-    private void launchNuke (Silo silo, float sx, float sy, float tx, float ty) {
+    private void launchNuke (Silo silo, float tx, float ty) {
         Nuke nuke = new Nuke(game, ++IDS);
         nuke.owner(silo.owner());
-        nuke.setPosition(sx, sy, center);
+        Vector2 sc = silo.sc();
+        nuke.setPosition(sc.x, sc.y, center);
         nuke.target(tx, ty);
         nukes.add(nuke);
         gameStage.addActor(nuke);
@@ -425,7 +426,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
         switch (msg.message) {
         case Events.LAUNCH_NUKE: {
             LaunchNukeEvent ln = (LaunchNukeEvent)msg.extraInfo;
-            launchNuke(ln.silo, ln.sx, ln.sy, ln.tx, ln.ty);
+            launchNuke(ln.silo, ln.tx, ln.ty);
         } break;
         case Events.EXPLODE: {
             ExplodeEvent e = (ExplodeEvent)msg.extraInfo;
