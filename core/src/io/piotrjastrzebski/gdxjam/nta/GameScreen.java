@@ -1,13 +1,11 @@
 package io.piotrjastrzebski.gdxjam.nta;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ai.msg.Telegram;
 import com.badlogic.gdx.ai.msg.Telegraph;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Circle;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -21,6 +19,8 @@ import com.badlogic.gdx.utils.Scaling;
 import io.piotrjastrzebski.gdxjam.nta.game.*;
 import io.piotrjastrzebski.gdxjam.nta.utils.Continents;
 import io.piotrjastrzebski.gdxjam.nta.utils.Continents.ContinentData;
+import io.piotrjastrzebski.gdxjam.nta.utils.FireBaseFunctions;
+import io.piotrjastrzebski.gdxjam.nta.utils.RNGUtils;
 import io.piotrjastrzebski.gdxjam.nta.utils.events.Events;
 import io.piotrjastrzebski.gdxjam.nta.utils.events.ExplodeEvent;
 import io.piotrjastrzebski.gdxjam.nta.utils.events.LaunchNukeEvent;
@@ -28,6 +28,7 @@ import io.piotrjastrzebski.gdxjam.nta.utils.events.PlayerLostCity;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
+import java.util.Random;
 
 import static com.badlogic.gdx.utils.Align.center;
 
@@ -37,6 +38,7 @@ public class GameScreen extends BaseScreen implements Telegraph {
     final int maxCities = 4;
 
     Stage gameStage;
+    long seed;
     Array<Entity> entities;
     // immobile stuff
     Array<Continent> continents;
@@ -88,6 +90,11 @@ public class GameScreen extends BaseScreen implements Telegraph {
             gameStage.addActor(image);
         }
 
+        seed = System.currentTimeMillis();
+        seed = 1248712498L;
+        // lets hope its stable enough between machines :D
+        RNGUtils.init(seed);
+
         // eventually we want something more sensible, rng maybe?
         // via seed?
         for (ContinentData cd : Continents.continents()) {
@@ -108,8 +115,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
 
                 for (int j = 0; j < 1000; j++) {
                     city.setPosition(
-                        MathUtils.random(0, bounds.width - city.getWidth()),
-                        MathUtils.random(0, bounds.height - city.getHeight())
+                        RNGUtils.random(0, bounds.width - city.getWidth()),
+                        RNGUtils.random(0, bounds.height - city.getHeight())
                     );
                     boolean tooClose = false;
                     for (City other : cities) {
@@ -205,19 +212,19 @@ public class GameScreen extends BaseScreen implements Telegraph {
         game.sounds.begin.play();
         // random initial positions
         // more continents per player?
-        Array<Continent> copy = new Array<>(continents);
-        copy.shuffle();
-        if (copy.size == 0) return;
+
+        Array<Continent> shuffled = RNGUtils.shuffle(new Array<>(continents));
+        if (shuffled.size == 0) return;
         // there should be a few matching continents
         while (true) {
-            Continent continent = copy.pop();
+            Continent continent = shuffled.pop();
             if (continent.cities().size == maxCities) {
                 overtakeContinent(continent, local);
                 break;
             }
         }
         while (true) {
-            Continent continent = copy.pop();
+            Continent continent = shuffled.pop();
             if (continent.cities().size == maxCities) {
                 overtakeContinent(continent, remote);
                 break;
@@ -239,8 +246,8 @@ public class GameScreen extends BaseScreen implements Telegraph {
             outer:
             for (int j = 0; j < 2000; j++) {
                 silo.setPosition(
-                    MathUtils.random(0, bounds.width - silo.getWidth()),
-                    MathUtils.random(0, bounds.height - silo.getHeight())
+                    RNGUtils.random(0, bounds.width - silo.getWidth()),
+                    RNGUtils.random(0, bounds.height - silo.getHeight())
                 );
                 float cx = silo.getX(center);
                 float cy = silo.getY(center);
@@ -384,6 +391,9 @@ public class GameScreen extends BaseScreen implements Telegraph {
         super.show();
         Events.register(this, Events.LAUNCH_NUKE, Events.EXPLODE, Events.PLAYER_LOST_CITy);
         Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gameStage, this));
+
+        restart();
+        createStartUI();
     }
 
     @Override
@@ -395,10 +405,6 @@ public class GameScreen extends BaseScreen implements Telegraph {
         gameStage.draw();
         uiStage.act(delta);
         uiStage.draw();
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            restart();
-        }
     }
 
     @Override
