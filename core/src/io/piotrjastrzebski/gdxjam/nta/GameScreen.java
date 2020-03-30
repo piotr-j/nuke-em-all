@@ -590,6 +590,16 @@ public class GameScreen extends BaseScreen implements Telegraph {
     private void joinGame (Dialog dialog, Table container, Online.Player host) {
         log.debug("Joining host {}", host);
         online.join(host.id, gameListener());
+
+        Skin skin = game.skin;
+        Dialog joinDialog = new Dialog("Joining...", skin);
+        joinDialog.getTitleTable().pad(16);
+        joinDialog.setModal(true);
+        joinDialog.setMovable(false);
+
+        Table content = joinDialog.getContentTable().pad(16);
+        content.add(new Label("Please wait", skin)).left().row();
+        joinDialog.show(uiStage);
     }
 
     private Online.GameListener gameListener () {
@@ -626,13 +636,39 @@ public class GameScreen extends BaseScreen implements Telegraph {
                 // someone left the game
                 log.info("End");
                 restart();
+                createStartUI();
             }
 
             @Override
             public void fail () {
                 log.warn("Failed!");
-                restart();
+                failDialog("Failed to join game!");
             }
         };
+    }
+
+    private void failDialog (String text) {
+
+        Skin skin = game.skin;
+        Dialog dialog = new Dialog("We have a problem...", skin);
+        dialog.getTitleTable().pad(16);
+        dialog.setModal(true);
+        dialog.setMovable(false);
+
+        Table content = dialog.getContentTable().pad(16);
+        content.add(new Label(text, skin)).left().row();
+
+        {
+            Button button = new ImageTextButton("OK", skin, "toggle");
+            button.addListener(new ChangeListener() {
+                @Override
+                public void changed (ChangeEvent event, Actor actor) {
+                    restart();
+                    createStartUI();
+                }
+            });
+            content.add(button);
+        }
+        dialog.show(uiStage);
     }
 }

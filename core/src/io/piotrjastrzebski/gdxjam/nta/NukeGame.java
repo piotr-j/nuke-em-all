@@ -58,7 +58,7 @@ public class NukeGame extends Game {
 	// firebase realtime db we will connect to for online play
 	public final String db = "https://nukethemall-d8ac7.firebaseio.com/";
 
-    @Override
+	@Override
 	public void create () {
 		batch = new PolygonSpriteBatch();
 		{

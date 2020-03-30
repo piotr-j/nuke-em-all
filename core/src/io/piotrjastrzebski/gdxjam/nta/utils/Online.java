@@ -11,6 +11,9 @@ import okio.BufferedSource;
 
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,6 +27,7 @@ public class Online {
     protected final OkHttpClient streamClient;
     protected final String playerId;
     protected boolean isHosting;
+    protected ScheduledExecutorService ses;
 
     public Online (String basePath) {
         this.basePath = basePath;
@@ -41,6 +45,8 @@ public class Online {
 
         // probably no need for this to change?
         playerId = Long.toHexString(new Random().nextLong()).substring(0, 5);
+
+        ses = Executors.newSingleThreadScheduledExecutor();
 
         if (true) return;
         String content = "{\"" + playerId + "\": " + System.currentTimeMillis() + "}";
@@ -71,6 +77,7 @@ public class Online {
         });
     }
 
+    ScheduledFuture<?> hostFuture;
     public void host (GameListener gameListener) {
         // in case we cancel before a reply
         isHosting = true;
@@ -87,8 +94,15 @@ public class Online {
             public void failed () {
                 isHosting = false;
                 log.warn("Failed to host!");
+                gameListener.fail();
             }
         });
+
+        // keep updating so out time is fresh
+        hostFuture = ses.scheduleAtFixedRate(() -> {
+            String update = "{\"" + playerId + "\": " + System.currentTimeMillis() + "}";
+            update("hosts.json", update, null);
+        }, 30, 30, TimeUnit.SECONDS);
     }
 
     public String playerId (){
@@ -98,6 +112,7 @@ public class Online {
     public void cancelHost () {
         if (!isHosting) return;
         isHosting = false;
+        hostFuture.cancel(false);
         delete("hosts/" + playerId + ".json", null);
         delete("games/" + playerId + ".json", null);
     }
@@ -121,7 +136,7 @@ public class Online {
                         for (JsonValue hv : data) {
                             Player host = new Player(hv.name, hv.asLong());
                             // skip if old (ie we didnt remove it for some reason)
-                            if (TimeUtils.timeSinceMillis(host.timestamp) > TimeUnit.MINUTES.toMillis(2)) {
+                            if (TimeUtils.timeSinceMillis(host.timestamp) > TimeUnit.SECONDS.toMillis(45)) {
                                 continue;
                             }
                             hostCache.put(host.id, host);
@@ -197,6 +212,7 @@ public class Online {
 
     public void dispose () {
         cancelHost();
+        ses.shutdown();
         // other stuff
     }
 
@@ -354,7 +370,7 @@ public class Online {
             gameCall.cancel();
         }
 
-        state = new GameState(listener);
+        state = new GameState(this, listener);
         String path = "games/" + hostId + ".json";
         String joinContent = "{" +
             "\"player\":" + "\"" + playerId + "\"," +
@@ -377,14 +393,19 @@ public class Online {
     }
 
     static class GameState implements OnStream {
+        private Online online;
         private GameListener listener;
         private long startTime;
         String p1;
         long p1join;
+        boolean p1Start;
         String p2;
         long p2join;
+        boolean p2Start;
+        boolean started;
 
-        public GameState (GameListener listener) {
+        public GameState (Online online, GameListener listener) {
+            this.online = online;
             this.listener = listener;
             startTime = System.currentTimeMillis();
         }
@@ -445,6 +466,7 @@ public class Online {
             }
         }
 
+        ScheduledFuture<?> cancelGame;
         private void process (JsonValue value) {
             String player = value.getString("player");
             String action = value.getString("action");
@@ -465,6 +487,37 @@ public class Online {
                     log.warn("{} joined but slots are filed", player);
                 }
                 if (p1 != null && p2 != null) {
+                    // when we have two players try to start
+                    online.start();
+                    // if we dont start just end
+                    cancelGame = online.ses.schedule(() -> {
+                        listener.end();
+                    }, 5, TimeUnit.SECONDS);
+                }
+            } break;
+            case "start": {
+                // start game when both players want to start
+                if (p1 != null && p1.equals(player) && !p1Start) {
+                    // we dont want some old action to start
+                    p1Start = ts > startTime;
+                    // if we didnt start, send event
+                    if (p1Start && !p1.equals(online.playerId) && !p2Start) {
+                        online.start();
+                    }
+                } else if (p2 != null && p2.equals(player) && !p2Start) {
+                    // we dont want some old action to start
+                    p2Start = ts > startTime;
+                    // if we didnt start, send event
+                    if (p2Start && !p2.equals(online.playerId) && !p1Start) {
+                        online.start();
+                    }
+                }
+                if (p1Start && p2Start && !started) {
+                    if (cancelGame != null) {
+                        cancelGame.cancel(false);
+                        cancelGame = null;
+                    }
+                    started = true;
                     listener.start(p1, p2, p1join);
                 }
             } break;
@@ -486,6 +539,19 @@ public class Online {
         public void failed () {
 
         }
+    }
+
+    void start () {
+        if (gameHostId == null) {
+            return;
+        }
+        String path = "games/" + gameHostId + ".json";
+        String content = "{" +
+            "\"player\":" + "\"" + playerId + "\"," +
+            "\"action\":" + "\"start\"," +
+            "\"ts\":" + System.currentTimeMillis() +
+            "}";
+        add(path, content, null);
     }
 
     public void launchNuke (int siloId, float x, float y) {
